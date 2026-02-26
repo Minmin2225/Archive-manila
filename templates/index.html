@@ -88,9 +88,39 @@
   100% { transform: translateX(-50%); }
 }
 @media (max-width: 768px) {
-  .hero { grid-template-columns: 1fr; min-height: auto; }
-  .hero-text { padding: 3rem 2rem; }
-  .hero-image { height: 60vw; }
+  .hero {
+    grid-template-columns: 1fr;
+    min-height: 100svh;
+    grid-template-rows: 1fr auto;
+    position: relative;
+  }
+  .hero-image {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    z-index: 0;
+  }
+  .hero-image img {
+    filter: grayscale(100%) contrast(1.05) brightness(0.45);
+  }
+  .hero-text {
+    position: relative;
+    z-index: 1;
+    padding: 5rem 1.75rem 3rem;
+    justify-content: flex-end;
+    min-height: 100svh;
+  }
+  .hero-title {
+    font-size: clamp(3.5rem, 18vw, 6rem);
+    color: #fff;
+  }
+  .hero-sub { color: rgba(255,255,255,0.85); }
+  .hero-cta {
+    background: #fff;
+    color: var(--black);
+    border-color: #fff;
+  }
+  .hero-cta:hover { background: #eee; }
 }
 
 .section { padding: 3.5rem 2.5rem; }
@@ -146,6 +176,35 @@
 }
 .product-img-back {
   transform: rotateY(180deg);
+}
+/* Mobile flipped state */
+.product-img.flipped {
+  transform: rotateY(180deg);
+}
+/* Touch hint */
+.flip-hint {
+  display: none;
+  position: absolute;
+  bottom: 0.4rem; right: 0.4rem;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.4rem;
+  pointer-events: none;
+  z-index: 2;
+}
+@media (hover: none) {
+  .flip-hint { display: block; }
+  /* disable hover flip on touch devices */
+  .product-card:hover .product-img { transform: none; }
+  .product-card:hover .product-img-front,
+  .product-card:hover .product-img-back { border-color: var(--border); }
+  /* navigable product-info cursor */
+  .product-info { cursor: pointer; }
+  .product-info:active { opacity: 0.7; }
 }
 .product-card:hover .product-img-front,
 .product-card:hover .product-img-back {
@@ -234,29 +293,30 @@
   <h2 class="section-title">Latest Arrivals</h2>
   <div class="products-grid" id="latest-grid">
     {% for product in products[:8] %}
-    <div class="product-card" onclick="window.location='/product/{{ product.id }}'">
+    <div class="product-card" data-pid="{{ product.id }}">
       <div class="product-img">
         <div class="product-img-front">
           {% if product.image %}
-            <img src="/static/uploads/{{ product.image }}" alt="{{ product.name }}" loading="lazy">
+            <img src="{{ img_src(product.image) }}" alt="{{ product.name }}" loading="lazy">
           {% else %}
             <div class="product-img-placeholder">👕</div>
           {% endif %}
           {% if product.stock == 0 %}
             <span class="out-of-stock-badge">Sold Out</span>
           {% endif %}
+          <span class="flip-hint">tap to flip</span>
         </div>
         <div class="product-img-back">
           {% if product.image_back %}
-            <img src="/static/uploads/{{ product.image_back }}" alt="{{ product.name }} back" loading="lazy">
+            <img src="{{ img_src(product.image_back) }}" alt="{{ product.name }} back" loading="lazy">
           {% elif product.image %}
-            <img src="/static/uploads/{{ product.image }}" alt="{{ product.name }}" loading="lazy">
+            <img src="{{ img_src(product.image) }}" alt="{{ product.name }}" loading="lazy">
           {% else %}
             <div class="product-img-placeholder">👕</div>
           {% endif %}
         </div>
       </div>
-      <div class="product-info">
+      <div class="product-info" onclick="window.location='/product/{{ product.id }}'">
         <div class="product-name">{{ product.name }}</div>
         <div class="product-price">₱{{ "%.0f"|format(product.price) }}</div>
       </div>
@@ -275,29 +335,30 @@
   </div>
   <div class="products-grid" id="category-grid">
     {% for product in products %}
-    <div class="product-card" onclick="window.location='/product/{{ product.id }}'">
+    <div class="product-card" data-pid="{{ product.id }}">
       <div class="product-img">
         <div class="product-img-front">
           {% if product.image %}
-            <img src="/static/uploads/{{ product.image }}" alt="{{ product.name }}" loading="lazy">
+            <img src="{{ img_src(product.image) }}" alt="{{ product.name }}" loading="lazy">
           {% else %}
             <div class="product-img-placeholder">👕</div>
           {% endif %}
           {% if product.stock == 0 %}
             <span class="out-of-stock-badge">Sold Out</span>
           {% endif %}
+          <span class="flip-hint">tap to flip</span>
         </div>
         <div class="product-img-back">
           {% if product.image_back %}
-            <img src="/static/uploads/{{ product.image_back }}" alt="{{ product.name }} back" loading="lazy">
+            <img src="{{ img_src(product.image_back) }}" alt="{{ product.name }} back" loading="lazy">
           {% elif product.image %}
-            <img src="/static/uploads/{{ product.image }}" alt="{{ product.name }}" loading="lazy">
+            <img src="{{ img_src(product.image) }}" alt="{{ product.name }}" loading="lazy">
           {% else %}
             <div class="product-img-placeholder">👕</div>
           {% endif %}
         </div>
       </div>
-      <div class="product-info">
+      <div class="product-info" onclick="window.location='/product/{{ product.id }}'">
         <div class="product-name">{{ product.name }}</div>
         <div class="product-price">₱{{ "%.0f"|format(product.price) }}</div>
       </div>
@@ -314,6 +375,35 @@
 
 {% block scripts %}
 <script>
+/* ── Touch: tap image = flip, tap info = navigate ─────────────────────── */
+function isTouchDevice() {
+  return window.matchMedia('(hover: none)').matches;
+}
+
+function initCardBehavior() {
+  document.querySelectorAll('.product-card').forEach(card => {
+    const img  = card.querySelector('.product-img');
+    const info = card.querySelector('.product-info');
+    if (!img) return;
+
+    if (isTouchDevice()) {
+      // Touch: tap image area flips; info tap navigates (has its own onclick)
+      img.addEventListener('touchend', e => {
+        e.preventDefault();
+        img.classList.toggle('flipped');
+      }, { passive: false });
+    } else {
+      // Desktop: whole card is clickable to navigate
+      card.addEventListener('click', () => {
+        window.location = '/product/' + card.dataset.pid;
+      });
+    }
+  });
+}
+
+// Run on page load and after filterCategory re-renders
+document.addEventListener('DOMContentLoaded', initCardBehavior);
+
 async function filterCategory(btn, category) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
@@ -326,25 +416,27 @@ async function filterCategory(btn, category) {
   const products = await res.json();
 
   grid.innerHTML = products.map(p => `
-    <div class="product-card" onclick="window.location='/product/${p.id}'">
+    <div class="product-card" data-pid="${p.id}">
       <div class="product-img">
         <div class="product-img-front">
-          ${p.image ? `<img src="/static/uploads/${p.image}" alt="${p.name}" loading="lazy">` : '<div class="product-img-placeholder">👕</div>'}
+          ${p.image ? `<img src="${imgSrc(p.image)}" alt="${p.name}" loading="lazy">` : '<div class="product-img-placeholder">👕</div>'}
           ${p.stock === 0 ? '<span class="out-of-stock-badge">Sold Out</span>' : ''}
+          <span class="flip-hint">tap to flip</span>
         </div>
         <div class="product-img-back">
           ${p.image_back
-            ? `<img src="/static/uploads/${p.image_back}" alt="${p.name} back" loading="lazy">`
-            : (p.image ? `<img src="/static/uploads/${p.image}" alt="${p.name}" loading="lazy">` : '<div class="product-img-placeholder">👕</div>')}
+            ? `<img src="${imgSrc(p.image_back)}" alt="${p.name} back" loading="lazy">`
+            : (p.image ? `<img src="${imgSrc(p.image)}" alt="${p.name}" loading="lazy">` : '<div class="product-img-placeholder">👕</div>')}
         </div>
       </div>
-      <div class="product-info">
+      <div class="product-info" onclick="window.location='/product/${p.id}'">
         <div class="product-name">${p.name}</div>
         <div class="product-price">₱${Math.round(p.price)}</div>
       </div>
     </div>
   `).join('');
   grid.style.opacity = '1';
+  initCardBehavior();
 }
 </script>
 {% endblock %}
