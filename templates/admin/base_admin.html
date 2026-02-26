@@ -282,17 +282,17 @@ a { color: inherit; text-decoration: none; }
   </div>
   <nav class="sidebar-nav">
     <a href="/admin/dashboard" class="nav-item {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
-      <span class="nav-item-icon">📊</span> Dashboard
+      <span class="nav-item-icon"></span> Dashboard
     </a>
     <a href="/admin/orders" class="nav-item {% if request.endpoint in ('admin_orders', 'admin_order_detail') %}active{% endif %}">
-      <span class="nav-item-icon">📦</span> Orders
+      <span class="nav-item-icon"></span> Orders
       <span class="notification-badge" id="pending-count" style="display:none">0</span>
     </a>
     <a href="/admin/products" class="nav-item {% if request.endpoint == 'admin_products' %}active{% endif %}">
-      <span class="nav-item-icon">👕</span> Products
+      <span class="nav-item-icon"></span> Products
     </a>
     <a href="/" target="_blank" class="nav-item">
-      <span class="nav-item-icon">🛍️</span> View Store
+      <span class="nav-item-icon"></span> View Store
     </a>
   </nav>
   <div class="sidebar-bottom">
