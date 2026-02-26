@@ -113,6 +113,14 @@
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1.5rem;
 }
+@media (max-width: 600px) {
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  .product-name { font-size: 0.75rem; }
+  .product-price { font-size: 0.9rem; }
+}
 .product-card {
   cursor: pointer;
   perspective: 1000px;
@@ -230,7 +238,7 @@
       <div class="product-img">
         <div class="product-img-front">
           {% if product.image %}
-            <img src="{{ img_src(product.image) }}" alt="{{ product.name }}" loading="lazy">
+            <img src="/static/uploads/{{ product.image }}" alt="{{ product.name }}" loading="lazy">
           {% else %}
             <div class="product-img-placeholder">👕</div>
           {% endif %}
@@ -240,9 +248,9 @@
         </div>
         <div class="product-img-back">
           {% if product.image_back %}
-            <img src="{{ img_src(product.image_back) }}" alt="{{ product.name }} back" loading="lazy">
+            <img src="/static/uploads/{{ product.image_back }}" alt="{{ product.name }} back" loading="lazy">
           {% elif product.image %}
-            <img src="{{ img_src(product.image) }}" alt="{{ product.name }}" loading="lazy">
+            <img src="/static/uploads/{{ product.image }}" alt="{{ product.name }}" loading="lazy">
           {% else %}
             <div class="product-img-placeholder">👕</div>
           {% endif %}
@@ -271,7 +279,7 @@
       <div class="product-img">
         <div class="product-img-front">
           {% if product.image %}
-            <img src="{{ img_src(product.image) }}" alt="{{ product.name }}" loading="lazy">
+            <img src="/static/uploads/{{ product.image }}" alt="{{ product.name }}" loading="lazy">
           {% else %}
             <div class="product-img-placeholder">👕</div>
           {% endif %}
@@ -281,9 +289,9 @@
         </div>
         <div class="product-img-back">
           {% if product.image_back %}
-            <img src="{{ img_src(product.image_back) }}" alt="{{ product.name }} back" loading="lazy">
+            <img src="/static/uploads/{{ product.image_back }}" alt="{{ product.name }} back" loading="lazy">
           {% elif product.image %}
-            <img src="{{ img_src(product.image) }}" alt="{{ product.name }}" loading="lazy">
+            <img src="/static/uploads/{{ product.image }}" alt="{{ product.name }}" loading="lazy">
           {% else %}
             <div class="product-img-placeholder">👕</div>
           {% endif %}
@@ -321,13 +329,13 @@ async function filterCategory(btn, category) {
     <div class="product-card" onclick="window.location='/product/${p.id}'">
       <div class="product-img">
         <div class="product-img-front">
-          ${p.image ? `<img src="${imgSrc(p.image)}" alt="${p.name}" loading="lazy">` : '<div class="product-img-placeholder">👕</div>'}
+          ${p.image ? `<img src="/static/uploads/${p.image}" alt="${p.name}" loading="lazy">` : '<div class="product-img-placeholder">👕</div>'}
           ${p.stock === 0 ? '<span class="out-of-stock-badge">Sold Out</span>' : ''}
         </div>
         <div class="product-img-back">
           ${p.image_back
-            ? `<img src="${imgSrc(p.image_back)}" alt="${p.name} back" loading="lazy">`
-            : (p.image ? `<img src="${imgSrc(p.image)}" alt="${p.name}" loading="lazy">` : '<div class="product-img-placeholder">👕</div>')}
+            ? `<img src="/static/uploads/${p.image_back}" alt="${p.name} back" loading="lazy">`
+            : (p.image ? `<img src="/static/uploads/${p.image}" alt="${p.name}" loading="lazy">` : '<div class="product-img-placeholder">👕</div>')}
         </div>
       </div>
       <div class="product-info">
