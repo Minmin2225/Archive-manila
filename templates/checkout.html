@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+{% block title %}Checkout — Archive Manila{% endblock %}
+
+{% block extra_styles %}
+<style>
+.checkout-wrapper {
+  max-width: 900px; margin: 0 auto; padding: 2rem;
+  padding-top: calc(60px + 2rem);
+}
+.checkout-header { text-align: center; margin-bottom: 2.5rem; }
+.checkout-header h1 {
+  font-family: var(--font-display); font-size: 2rem; font-weight: 900;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+.steps-bar {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; margin-bottom: 3rem;
+}
+.step-item {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--gray);
+  border: 1px solid var(--border);
+  border-right: none;
+}
+.step-item:last-child { border-right: 1px solid var(--border); }
+.step-item.active { background: var(--black); color: white; border-color: var(--black); }
+.step-item.done { background: var(--light-gray); color: #555; }
+.step-num {
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; background: var(--border); color: var(--gray);
+}
+.step-item.active .step-num { background: white; color: var(--black); }
+.step-item.done .step-num { background: #555; color: white; }
+
+.checkout-grid {
+  display: grid; grid-template-columns: 1fr 320px;
+  gap: 2rem; align-items: start;
+}
+
+.form-panel {
+  background: white; border: 1px solid var(--border);
+  padding: 2rem;
+}
+.form-panel h2 {
+  font-family: var(--font-display); font-size: 1.3rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  margin-bottom: 1.5rem; padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--black);
+}
+
+.form-group { margin-bottom: 1.2rem; }
+.form-group label {
+  display: block; font-size: 0.78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  margin-bottom: 0.4rem;
+}
+.form-group input, .form-group textarea, .form-group select {
+  width: 100%; padding: 0.75rem 1rem;
+  border: 1px solid var(--border); background: var(--cream);
+  font-family: var(--font-body); font-size: 0.9rem;
+  outline: none; transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+  border-color: var(--black);
+}
+.form-group input.error, .form-group select.error, .form-group textarea.error {
+  border-color: var(--accent);
+}
+.field-error { color: var(--accent); font-size: 0.75rem; margin-top: 0.3rem; display: none; }
+.field-error.show { display: block; }
+.form-group textarea { height: 80px; resize: vertical; }
+
+.payment-section { margin-top: 1.5rem; }
+.payment-instructions {
+  background: var(--cream); border: 1px solid var(--border);
+  padding: 1.25rem; margin-bottom: 1.25rem;
+}
+.payment-instructions h3 {
+  font-family: var(--font-display); font-size: 1.1rem; font-weight: 800;
+  text-transform: uppercase; margin-bottom: 0.75rem;
+}
+.payment-detail { display: flex; gap: 0.5rem; margin-bottom: 0.4rem; font-size: 0.88rem; }
+.payment-detail strong { min-width: 120px; }
+
+.upload-area {
+  border: 2px dashed var(--border);
+  padding: 2rem; text-align: center;
+  cursor: pointer; transition: all 0.2s;
+  background: var(--cream);
+  position: relative;
+}
+.upload-area:hover, .upload-area.dragover { border-color: var(--black); background: var(--light-gray); }
+.upload-area.has-file { border-style: solid; border-color: #2d7a2d; background: #f0fff0; }
+.upload-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+.upload-text { font-size: 0.85rem; color: var(--gray); }
+.upload-text strong { color: var(--black); text-decoration: underline; }
+.upload-filename {
+  font-size: 0.8rem; font-weight: 600; color: #2d7a2d; margin-top: 0.5rem;
+  display: none;
+}
+.upload-preview {
+  max-width: 100%; max-height: 150px; margin-top: 0.75rem;
+  display: none; border: 1px solid var(--border);
+}
+#proof-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+/* Order Summary */
+.order-summary {
+  background: white; border: 1px solid var(--border);
+  position: sticky; top: 80px;
+}
+.order-summary-header {
+  background: var(--black); color: white;
+  padding: 1rem 1.5rem;
+  font-family: var(--font-display); font-size: 1rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.order-items-list { padding: 1rem 1.5rem; }
+.summary-item {
+  display: flex; gap: 0.75rem; align-items: center;
+  padding: 0.75rem 0; border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.summary-item-img {
+  width: 48px; height: 48px; object-fit: cover;
+  background: var(--light-gray); border: 1px solid var(--border); flex-shrink: 0;
+}
+.summary-item-name { font-weight: 600; flex: 1; }
+.summary-item-qty { color: var(--gray); font-size: 0.78rem; }
+.summary-item-price { font-weight: 700; white-space: nowrap; }
+
+.summary-totals { padding: 1rem 1.5rem; background: var(--cream); }
+.summary-row {
+  display: flex; justify-content: space-between;
+  font-size: 0.85rem; padding: 0.3rem 0; color: #555;
+}
+.summary-total {
+  display: flex; justify-content: space-between;
+  font-family: var(--font-display); font-size: 1.2rem; font-weight: 800;
+  padding-top: 0.75rem; margin-top: 0.5rem;
+  border-top: 2px solid var(--black);
+}
+
+.nav-buttons {
+  display: flex; gap: 1rem; margin-top: 1.5rem;
+}
+.nav-buttons .btn { flex: 1; }
+
+.step-panel { display: none; }
+.step-panel.active { display: block; }
+
+.empty-checkout {
+  text-align: center; padding: 4rem 2rem;
+}
+.empty-checkout h2 {
+  font-family: var(--font-display); font-size: 1.8rem; font-weight: 900;
+  text-transform: uppercase; margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .checkout-grid { grid-template-columns: 1fr; }
+  .order-summary { position: static; }
+  .steps-bar { flex-wrap: wrap; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="checkout-wrapper">
+  <div class="checkout-header">
+    <h1>Checkout</h1>
+  </div>
+
+  <div id="empty-state" style="display:none">
+    <div class="empty-checkout">
+      <h2>Your cart is empty</h2>
+      <p style="color:var(--gray);margin-bottom:1.5rem">Add some items before checking out.</p>
+      <a href="/" class="btn btn-primary" style="display:inline-block;width:auto;padding:0.9rem 2rem">Shop Now</a>
+    </div>
+  </div>
+
+  <div id="checkout-content">
+    <div class="steps-bar">
+      <div class="step-item active" id="step-tab-1">
+        <span class="step-num">1</span> Shipping
+      </div>
+      <div class="step-item" id="step-tab-2">
+        <span class="step-num">2</span> Payment
+      </div>
+      <div class="step-item" id="step-tab-3">
+        <span class="step-num">3</span> Confirm
+      </div>
+    </div>
+
+    <div class="checkout-grid">
+      <div>
+        <!-- Step 1: Shipping -->
+        <div class="step-panel active" id="step-1">
+          <div class="form-panel">
+            <h2>Shipping Information</h2>
+            <div class="form-group">
+              <label>Full Name *</label>
+              <input type="text" id="buyer_name" placeholder="e.g. Juan Dela Cruz">
+              <div class="field-error" id="err-name">Full name is required</div>
+            </div>
+            <div class="form-group">
+              <label>Phone Number *</label>
+              <input type="tel" id="buyer_phone" placeholder="e.g. 09171234567">
+              <div class="field-error" id="err-phone">Valid phone number required</div>
+            </div>
+            <div class="form-group">
+              <label>Full Address *</label>
+              <textarea id="buyer_address" placeholder="House/Unit No., Street, Barangay, City, Province"></textarea>
+              <div class="field-error" id="err-address">Address is required</div>
+            </div>
+            <div class="form-group">
+              <label>Order Notes (optional)</label>
+              <input type="text" id="buyer_notes" placeholder="Any special instructions?">
+            </div>
+            <div class="nav-buttons">
+              <button class="btn btn-primary" onclick="goToStep2()">Continue to Payment →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Payment -->
+        <div class="step-panel" id="step-2">
+          <div class="form-panel">
+            <h2>Payment</h2>
+            <div class="payment-section">
+              <div class="payment-instructions">
+                <h3>GCash / Bank Transfer</h3>
+                <div class="payment-detail">
+                  <strong>GCash Number:</strong>
+                  <span>0917-123-4567</span>
+                </div>
+                <div class="payment-detail">
+                  <strong>Account Name:</strong>
+                  <span>Archive Manila</span>
+                </div>
+                <div class="payment-detail">
+                  <strong>Bank (BDO):</strong>
+                  <span>1234-5678-9012</span>
+                </div>
+                <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);font-size:0.82rem;color:#777;">
+                  Please send the exact total amount and include your name in the reference/note.
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Upload Proof of Payment *</label>
+                <div class="upload-area" id="upload-area"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)"
+                     ondrop="handleDrop(event)">
+                  <input type="file" id="proof-input" accept="image/*" onchange="handleFileSelect(event)">
+                  <div class="upload-icon">📎</div>
+                  <div class="upload-text">Drag & drop or <strong>browse</strong></div>
+                  <div style="font-size:0.75rem;color:#aaa;margin-top:0.25rem">JPG, PNG, GIF · Max 10MB</div>
+                  <div class="upload-filename" id="upload-filename"></div>
+                  <img class="upload-preview" id="upload-preview" alt="Payment proof">
+                </div>
+                <div class="field-error" id="err-proof">Please upload your payment proof</div>
+              </div>
+            </div>
+            <div class="nav-buttons">
+              <button class="btn btn-outline" onclick="goToStep(1)">← Back</button>
+              <button class="btn btn-primary" onclick="submitOrder()">Confirm Order →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Processing -->
+        <div class="step-panel" id="step-3">
+          <div class="form-panel" style="text-align:center;padding:3rem 2rem">
+            <div id="submitting-state">
+              <div style="font-size:3rem;margin-bottom:1rem">⏳</div>
+              <h2 style="margin-bottom:0.5rem">Submitting your order...</h2>
+              <p style="color:var(--gray);font-size:0.9rem">Please don't close this page.</p>
+            </div>
+            <div id="error-state" style="display:none">
+              <div style="font-size:3rem;margin-bottom:1rem">❌</div>
+              <h2 style="margin-bottom:0.5rem;color:var(--accent)">Submission Failed</h2>
+              <p id="error-message" style="color:var(--gray);font-size:0.9rem;margin-bottom:1.5rem"></p>
+              <button class="btn btn-primary" onclick="goToStep(2)" style="width:auto;display:inline-block;padding:0.75rem 2rem">Try Again</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Summary -->
+      <div class="order-summary">
+        <div class="order-summary-header">Order Summary</div>
+        <div class="order-items-list" id="summary-items"></div>
+        <div class="summary-totals">
+          <div class="summary-total"><span>Total</span><span id="sum-total">₱0</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let cartItems = [];
+let selectedFile = null;
+let isSubmitting = false;
+
+function init() {
+  cartItems = getCart();
+  if (cartItems.length === 0) {
+    document.getElementById('empty-state').style.display = 'block';
+    document.getElementById('checkout-content').style.display = 'none';
+    return;
+  }
+  renderSummary();
+}
+
+function renderSummary() {
+  const total = cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
+
+  document.getElementById('summary-items').innerHTML = cartItems.map(item => `
+    <div class="summary-item">
+      ${item.image ? `<img class="summary-item-img" src="${imgSrc(item.image)}" alt="${item.name}">` : '<div class="summary-item-img" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem">👕</div>'}
+      <div style="flex:1">
+        <div class="summary-item-name">${item.name}</div>
+        <div class="summary-item-qty">Qty: ${item.quantity}</div>
+      </div>
+      <div class="summary-item-price">₱${Math.round(item.price * item.quantity)}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('sum-total').textContent = `₱${Math.round(total)}`;
+}
+
+function goToStep(n) {
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.step-item').forEach((t, i) => {
+    t.classList.remove('active', 'done');
+    if (i + 1 < n) t.classList.add('done');
+    if (i + 1 === n) t.classList.add('active');
+  });
+  document.getElementById(`step-${n}`).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function validate(id, errorId, check) {
+  const el = document.getElementById(id);
+  const err = document.getElementById(errorId);
+  const val = el.value.trim();
+  if (!check(val)) {
+    el.classList.add('error'); err.classList.add('show'); return false;
+  }
+  el.classList.remove('error'); err.classList.remove('show'); return true;
+}
+
+function goToStep2() {
+  let valid = true;
+  valid &= validate('buyer_name', 'err-name', v => v.length >= 2);
+  valid &= validate('buyer_phone', 'err-phone', v => /^[\d\s\-+()]{7,15}$/.test(v));
+  valid &= validate('buyer_address', 'err-address', v => v.length >= 10);
+  if (valid) goToStep(2);
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) setProofFile(file);
+}
+function handleDragOver(e) {
+  e.preventDefault(); document.getElementById('upload-area').classList.add('dragover');
+}
+function handleDragLeave(e) {
+  document.getElementById('upload-area').classList.remove('dragover');
+}
+function handleDrop(e) {
+  e.preventDefault(); document.getElementById('upload-area').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) setProofFile(file);
+}
+function setProofFile(file) {
+  selectedFile = file;
+  const area = document.getElementById('upload-area');
+  area.classList.add('has-file');
+  const fn = document.getElementById('upload-filename');
+  fn.textContent = '✓ ' + file.name; fn.style.display = 'block';
+  const reader = new FileReader();
+  reader.onload = e => {
+    const preview = document.getElementById('upload-preview');
+    preview.src = e.target.result; preview.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+  document.getElementById('err-proof').classList.remove('show');
+}
+
+async function submitOrder() {
+  if (isSubmitting) return;
+
+  if (!selectedFile) {
+    document.getElementById('err-proof').classList.add('show');
+    return;
+  }
+
+  isSubmitting = true;
+  goToStep(3);
+
+  const formData = new FormData();
+  formData.append('buyer_name', document.getElementById('buyer_name').value.trim());
+  formData.append('buyer_phone', document.getElementById('buyer_phone').value.trim());
+  formData.append('buyer_address', document.getElementById('buyer_address').value.trim());
+  formData.append('buyer_notes', document.getElementById('buyer_notes').value.trim());
+  formData.append('shipping_option', 'standard');
+  formData.append('cart_items', JSON.stringify(cartItems));
+  formData.append('payment_proof', selectedFile);
+
+  try {
+    const res = await fetch('/api/checkout', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      clearCart();
+      window.location.href = `/order-confirmation/${data.order_number}`;
+    } else {
+      showError(data.error || 'Something went wrong');
+    }
+  } catch (err) {
+    showError('Network error. Please try again.');
+  }
+  isSubmitting = false;
+}
+
+function showError(msg) {
+  document.getElementById('submitting-state').style.display = 'none';
+  document.getElementById('error-state').style.display = 'block';
+  document.getElementById('error-message').textContent = msg;
+  goToStep(2);
+}
+
+init();
+</script>
+{% endblock %}

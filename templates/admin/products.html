@@ -1,0 +1,333 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Products{% endblock %}
+{% block page_title %}Products{% endblock %}
+
+{% block extra_styles %}
+<style>
+.product-actions { display: flex; gap: 0.4rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+  <h2 style="font-family:var(--font-display);font-size:1.3rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em">
+    All Products ({{ products|length }})
+  </h2>
+  <button class="btn btn-primary" onclick="openModal('add')">+ Add Product</button>
+</div>
+
+<div class="table-wrapper">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Image</th><th>Name</th><th>Category</th><th>Price</th>
+        <th>Stock</th><th>Description</th><th>Created</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="products-tbody">
+      {% for p in products %}
+      <tr id="product-row-{{ p.id }}">
+        <td>
+          <div style="display:flex;gap:4px;align-items:center">
+            {% if p.image %}
+              <img class="product-thumb" src="{{ img_src(p.image) }}" alt="{{ p.name }}" title="Front">
+            {% else %}
+              <div class="product-thumb-placeholder">👕</div>
+            {% endif %}
+            {% if p.image_back %}
+              <img class="product-thumb" src="{{ img_src(p.image_back) }}" alt="{{ p.name }} back" title="Back" style="opacity:0.7">
+            {% endif %}
+          </div>
+        </td>
+        <td style="font-weight:600">{{ p.name }}</td>
+        <td>{{ p.category }}</td>
+        <td style="font-weight:700;font-family:var(--font-display)">₱{{ "%.0f"|format(p.price) }}</td>
+        <td>
+          <span style="font-weight:700;{% if p.stock == 0 %}color:var(--accent){% elif p.stock < 5 %}color:#c07000{% endif %}">
+            {{ p.stock }}
+          </span>
+        </td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray);font-size:0.8rem">
+          {{ p.short_description or p.description }}
+        </td>
+        <td style="color:var(--gray);font-size:0.78rem">{{ p.created_at | fmt_date }}</td>
+        <td>
+          <div class="product-actions">
+            <button class="btn btn-sm btn-outline"
+              onclick='openModal("edit",{{ p.id }},{{ p.name|tojson }},{{ p.price }},{{ p.stock }},{{ (p.description or "")|tojson }},{{ (p.short_description or "")|tojson }},{{ (p.category or "Uncategorized")|tojson }})'>
+              Edit
+            </button>
+            <button class="btn btn-sm btn-danger" id="del-{{ p.id }}"
+              onclick='deleteProduct({{ p.id }}, {{ p.name|tojson }})'>
+              Del
+            </button>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" style="text-align:center;color:var(--gray);padding:2rem">No products yet</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Add Product</span>
+      <button class="close-modal" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-error" style="display:none;background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;padding:0.65rem 0.9rem;font-size:0.82rem;margin-bottom:1rem;border-radius:2px;"></div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Product Name *</label>
+          <input type="text" id="p-name" placeholder="e.g. Red Hoodie">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="p-category">
+            <option value="Tops">Tops</option>
+            <option value="Hoodies">Hoodies</option>
+            <option value="Bottoms">Bottoms</option>
+            <option value="Accessories">Accessories</option>
+            <option value="Outerwear">Outerwear</option>
+            <option value="Footwear">Footwear</option>
+            <option value="Uncategorized">Uncategorized</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Price (₱) *</label>
+          <input type="number" id="p-price" min="0" step="1" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Stock *</label>
+          <input type="number" id="p-stock" min="0" placeholder="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Short Description</label>
+        <input type="text" id="p-short-desc" placeholder="Brief tagline shown in listings">
+      </div>
+      <div class="form-group">
+        <label>Full Description</label>
+        <textarea id="p-desc" placeholder="Detailed product description"></textarea>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Front Image</label>
+          <input type="file" id="p-image" accept="image/*"
+            style="padding:0.5rem;border:1px solid var(--border);background:var(--cream);width:100%">
+          <div id="p-image-preview" style="margin-top:0.4rem;display:none">
+            <img id="p-image-preview-img" style="width:100%;max-height:120px;object-fit:cover;border:1px solid var(--border)">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Back Image</label>
+          <input type="file" id="p-image-back" accept="image/*"
+            style="padding:0.5rem;border:1px solid var(--border);background:var(--cream);width:100%">
+          <div id="p-image-back-preview" style="margin-top:0.4rem;display:none">
+            <img id="p-image-back-preview-img" style="width:100%;max-height:120px;object-fit:cover;border:1px solid var(--border)">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button type="button" class="btn btn-primary" id="save-btn" onclick="saveProduct()">Add Product</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let editMode = false;
+let editId   = null;
+let isSaving = false;
+
+/* ── Reliable fetch wrapper ───────────────────────────────────────────── */
+async function adminFetch(url, formData, method = 'POST') {
+  const res = await fetch(url, {
+    method: method,
+    body: formData,
+    credentials: 'include'
+  });
+
+  // Session expired → server returns 401 JSON
+  if (res.status === 401) {
+    const json = await res.json().catch(() => ({}));
+    if (json.redirect) window.location.href = json.redirect;
+    else window.location.href = '/admin/login';
+    return null;
+  }
+
+  // Any non-OK that isn't JSON (e.g. unexpected 500)
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error('Server error ' + res.status + (text ? ': ' + text.slice(0, 120) : ''));
+  }
+
+  return res.json();
+}
+
+/* ── Modal open/close ─────────────────────────────────────────────────── */
+function openModal(mode, id, name, price, stock, desc, shortDesc, category) {
+  editMode = (mode === 'edit');
+  editId   = id || null;
+  isSaving = false;
+
+  document.getElementById('modal-title').textContent = editMode ? 'Edit Product' : 'Add Product';
+  const btn = document.getElementById('save-btn');
+  btn.textContent = editMode ? 'Save Changes' : 'Add Product';
+  btn.disabled    = false;
+
+  document.getElementById('p-name').value       = name      || '';
+  document.getElementById('p-price').value      = price     != null ? price : '';
+  document.getElementById('p-stock').value      = stock     != null ? stock : '';
+  document.getElementById('p-desc').value       = desc      || '';
+  document.getElementById('p-short-desc').value = shortDesc || '';
+  document.getElementById('p-image').value      = '';
+  document.getElementById('p-image-back').value = '';
+  document.getElementById('p-image-preview').style.display = 'none';
+  document.getElementById('p-image-back-preview').style.display = 'none';
+  document.getElementById('modal-error').style.display = 'none';
+
+  // Set category dropdown
+  const catEl = document.getElementById('p-category');
+  const cat   = category || 'Uncategorized';
+  if (![...catEl.options].some(o => o.value === cat)) {
+    catEl.appendChild(new Option(cat, cat));
+  }
+  catEl.value = cat;
+
+  document.getElementById('product-modal').classList.add('open');
+  setTimeout(() => document.getElementById('p-name').focus(), 80);
+}
+
+function closeModal() {
+  if (isSaving) return;
+  document.getElementById('product-modal').classList.remove('open');
+}
+
+function showErr(msg) {
+  const el = document.getElementById('modal-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+  const btn = document.getElementById('save-btn');
+  btn.textContent = editMode ? 'Save Changes' : 'Add Product';
+  btn.disabled = false;
+  isSaving = false;
+}
+
+/* ── Save (add or edit) ───────────────────────────────────────────────── */
+async function saveProduct() {
+  if (isSaving) return;
+
+  const name  = document.getElementById('p-name').value.trim();
+  const price = document.getElementById('p-price').value.trim();
+  const stock = document.getElementById('p-stock').value.trim();
+
+  if (!name)                                 { showErr('Product name is required.');     return; }
+  if (!price || isNaN(+price) || +price < 0) { showErr('Enter a valid price.');          return; }
+  if (stock === '' || isNaN(+stock))          { showErr('Enter a valid stock quantity.'); return; }
+
+  isSaving = true;
+  const btn = document.getElementById('save-btn');
+  btn.textContent = 'Saving…';
+  btn.disabled    = true;
+  document.getElementById('modal-error').style.display = 'none';
+
+  const fd = new FormData();
+  fd.append('name',              name);
+  fd.append('price',             price);
+  fd.append('stock',             stock);
+  fd.append('category',          document.getElementById('p-category').value);
+  fd.append('description',       document.getElementById('p-desc').value.trim());
+  fd.append('short_description', document.getElementById('p-short-desc').value.trim());
+  const imgFile = document.getElementById('p-image').files[0];
+  if (imgFile) fd.append('image', imgFile);
+  const imgBackFile = document.getElementById('p-image-back').files[0];
+  if (imgBackFile) fd.append('image_back', imgBackFile);
+
+  // Edit: POST to /api/admin/products/<id> with _method=POST (backend treats as UPDATE)
+  // Add:  POST to /api/admin/products
+  const url = editMode ? '/api/admin/products/' + editId : '/api/admin/products';
+  if (editMode) fd.append('_method', 'POST');
+
+  try {
+    const data = await adminFetch(url, fd);
+    if (data === null) return; // redirected to login
+
+    if (data.success) {
+      showAdminToast(editMode ? '✓ Product updated!' : '✓ Product added!', 'success');
+      closeModal();
+      setTimeout(() => location.reload(), 400);
+    } else {
+      showErr(data.error || 'Save failed. Please try again.');
+    }
+  } catch (e) {
+    showErr(e.message || 'Network error. Please try again.');
+  }
+}
+
+/* ── Delete ───────────────────────────────────────────────────────────── */
+async function deleteProduct(id, name) {
+  if (!confirm('Delete "' + name + '"?\n\nThis cannot be undone.')) return;
+
+  const btn = document.getElementById('del-' + id);
+  if (btn) { btn.textContent = '…'; btn.disabled = true; }
+
+  const fd = new FormData();
+
+  try {
+    const data = await adminFetch('/api/admin/products/' + id, fd, 'DELETE');
+    if (data === null) return; // redirected to login
+
+    if (data.success) {
+      const row = document.getElementById('product-row-' + id);
+      if (row) {
+        row.style.transition = 'opacity .25s';
+        row.style.opacity = '0';
+        setTimeout(() => row.remove(), 260);
+      }
+      showAdminToast('✓ "' + name + '" deleted', 'success');
+    } else {
+      showAdminToast(data.error || 'Delete failed.', 'error');
+      if (btn) { btn.textContent = 'Del'; btn.disabled = false; }
+    }
+  } catch (e) {
+    showAdminToast('Error: ' + e.message, 'error');
+    if (btn) { btn.textContent = 'Del'; btn.disabled = false; }
+  }
+}
+
+
+/* ── Image preview ────────────────────────────────────────────────────── */
+function setupPreview(inputId, previewWrapperId, previewImgId) {
+  document.getElementById(inputId).addEventListener('change', function() {
+    const file = this.files[0];
+    const wrap = document.getElementById(previewWrapperId);
+    const img  = document.getElementById(previewImgId);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => { img.src = e.target.result; wrap.style.display = 'block'; };
+      reader.readAsDataURL(file);
+    } else {
+      wrap.style.display = 'none';
+    }
+  });
+}
+setupPreview('p-image',      'p-image-preview',      'p-image-preview-img');
+setupPreview('p-image-back', 'p-image-back-preview', 'p-image-back-preview-img');
+
+/* ── Close on overlay click / Escape ─────────────────────────────────── */
+document.getElementById('product-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('product-modal')) closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+{% endblock %}

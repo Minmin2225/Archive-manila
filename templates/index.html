@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+{% block title %}Archive Manila — Limited Thrift Pieces{% endblock %}
+
+{% block extra_styles %}
+<style>
+.hero {
+  background: #ffffff;
+  color: var(--black);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+.hero-text {
+  padding: 4rem 3rem 4rem 5rem;
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+  justify-content: center;
+}
+.hero-eyebrow { display: none; }
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(5rem, 10vw, 8.5rem);
+  font-weight: 900;
+  line-height: 0.88;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--black);
+  margin-bottom: 1.25rem;
+}
+.hero-sub {
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2vw, 1.6rem);
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 2rem;
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+.hero-cta {
+  display: inline-block;
+  background: var(--black); color: #ffffff;
+  padding: 0.85rem 2.2rem;
+  font-family: var(--font-display);
+  font-size: 1rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  transition: all 0.2s;
+  border: 2px solid var(--black);
+  border-radius: 6px;
+  align-self: flex-start;
+}
+.hero-cta:hover { background: #333; }
+.hero-image {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+}
+.hero-image img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  filter: grayscale(100%) contrast(1.05);
+  display: block;
+}
+.hero-image-placeholder {
+  width: 100%; height: 100%;
+  background: #f0f0f0;
+  display: flex; align-items: center; justify-content: center;
+  color: #ccc; font-size: 5rem;
+}
+.ticker {
+  background: var(--black);
+  overflow: hidden; white-space: nowrap;
+  padding: 0.75rem 0;
+}
+.ticker-inner {
+  display: inline-block;
+  animation: ticker 20s linear infinite;
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 0.9rem;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: white;
+}
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@media (max-width: 768px) {
+  .hero { grid-template-columns: 1fr; min-height: auto; }
+  .hero-text { padding: 3rem 2rem; }
+  .hero-image { height: 60vw; }
+}
+
+.section { padding: 3.5rem 2.5rem; }
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1.8rem; font-weight: 900;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  text-align: center;
+  margin-bottom: 2rem;
+  position: relative;
+}
+.section-title::after {
+  content: '';
+  display: block; margin: 0.5rem auto 0;
+  width: 40px; height: 3px; background: var(--black);
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+.product-card {
+  cursor: pointer;
+  perspective: 1000px;
+}
+.product-img {
+  aspect-ratio: 3/4;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+.product-card:hover .product-img {
+  transform: rotateY(180deg);
+}
+.product-img-front,
+.product-img-back {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--light-gray);
+  transition: border-color 0.3s;
+}
+.product-img-back {
+  transform: rotateY(180deg);
+}
+.product-card:hover .product-img-front,
+.product-card:hover .product-img-back {
+  border-color: var(--black);
+}
+.product-img-front img,
+.product-img-back img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.product-img-placeholder {
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, #e8e5df 0%, #d8d4cc 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: #bbb; font-size: 3rem;
+}
+.out-of-stock-badge {
+  position: absolute; top: 0.5rem; left: 0.5rem;
+  background: var(--black); color: white;
+  font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 0.25rem 0.5rem;
+}
+.product-info { padding: 0.75rem 0; }
+.product-name {
+  font-size: 0.85rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  margin-bottom: 0.25rem; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.product-price {
+  font-family: var(--font-display);
+  font-size: 1rem; font-weight: 700;
+  color: var(--black);
+}
+
+.category-tabs {
+  display: flex; gap: 0.5rem; flex-wrap: wrap;
+  margin-bottom: 2rem; justify-content: center;
+}
+.tab {
+  padding: 0.4rem 1.1rem;
+  border: 1px solid var(--border);
+  font-size: 0.78rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  cursor: pointer; background: white; transition: all 0.2s;
+  font-family: var(--font-body);
+}
+.tab:hover, .tab.active {
+  background: var(--black); color: white; border-color: var(--black);
+}
+
+.about-strip {
+  background: var(--black); color: var(--white);
+  padding: 3rem 2.5rem;
+  text-align: center;
+}
+.about-strip p {
+  max-width: 600px; margin: 0 auto;
+  font-size: 0.9rem; line-height: 1.7; color: #aaa;
+  font-style: italic;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+  <div class="hero-text">
+    <h1 class="hero-title">Archive<br>Manila</h1>
+    <p class="hero-sub">Limited Thrift Pieces</p>
+    <a href="#products" class="hero-cta">View Products</a>
+  </div>
+  <div class="hero-image">
+    <img src="/static/images/hero-model.png" alt="Archive Manila"
+         onerror="this.outerHTML='<div class=\'hero-image-placeholder\'></div>'">
+  </div>
+</section>
+
+<div class="ticker">
+  <span class="ticker-inner">
+    ARCHIVE MANILA &nbsp;·&nbsp; ARCHIVE MANILA &nbsp;·&nbsp; ARCHIVE MANILA &nbsp;·&nbsp; ARCHIVE MANILA &nbsp;·&nbsp; ARCHIVE MANILA &nbsp;·&nbsp; ARCHIVE MANILA &nbsp;·&nbsp; ARCHIVE MANILA &nbsp;·&nbsp; ARCHIVE MANILA &nbsp;·&nbsp; ARCHIVE MANILA &nbsp;·&nbsp; ARCHIVE MANILA &nbsp;·&nbsp; ARCHIVE MANILA &nbsp;·&nbsp; ARCHIVE MANILA &nbsp;·&nbsp; ARCHIVE MANILA &nbsp;·&nbsp; ARCHIVE MANILA &nbsp;·&nbsp;
+  </span>
+</div>
+
+<section class="section" id="products">
+  <h2 class="section-title">Latest Arrivals</h2>
+  <div class="products-grid" id="latest-grid">
+    {% for product in products[:8] %}
+    <div class="product-card" onclick="window.location='/product/{{ product.id }}'">
+      <div class="product-img">
+        <div class="product-img-front">
+          {% if product.image %}
+            <img src="{{ img_src(product.image) }}" alt="{{ product.name }}" loading="lazy">
+          {% else %}
+            <div class="product-img-placeholder">👕</div>
+          {% endif %}
+          {% if product.stock == 0 %}
+            <span class="out-of-stock-badge">Sold Out</span>
+          {% endif %}
+        </div>
+        <div class="product-img-back">
+          {% if product.image_back %}
+            <img src="{{ img_src(product.image_back) }}" alt="{{ product.name }} back" loading="lazy">
+          {% elif product.image %}
+            <img src="{{ img_src(product.image) }}" alt="{{ product.name }}" loading="lazy">
+          {% else %}
+            <div class="product-img-placeholder">👕</div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="product-info">
+        <div class="product-name">{{ product.name }}</div>
+        <div class="product-price">₱{{ "%.0f"|format(product.price) }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section" style="background: white; border-top: 1px solid var(--border);">
+  <h2 class="section-title">Fashion Category</h2>
+  <div class="category-tabs" id="category-tabs">
+    <button class="tab active" onclick="filterCategory(this, '')">All</button>
+    {% for cat in categories %}
+    <button class="tab" onclick="filterCategory(this, '{{ cat }}')">{{ cat }}</button>
+    {% endfor %}
+  </div>
+  <div class="products-grid" id="category-grid">
+    {% for product in products %}
+    <div class="product-card" onclick="window.location='/product/{{ product.id }}'">
+      <div class="product-img">
+        <div class="product-img-front">
+          {% if product.image %}
+            <img src="{{ img_src(product.image) }}" alt="{{ product.name }}" loading="lazy">
+          {% else %}
+            <div class="product-img-placeholder">👕</div>
+          {% endif %}
+          {% if product.stock == 0 %}
+            <span class="out-of-stock-badge">Sold Out</span>
+          {% endif %}
+        </div>
+        <div class="product-img-back">
+          {% if product.image_back %}
+            <img src="{{ img_src(product.image_back) }}" alt="{{ product.name }} back" loading="lazy">
+          {% elif product.image %}
+            <img src="{{ img_src(product.image) }}" alt="{{ product.name }}" loading="lazy">
+          {% else %}
+            <div class="product-img-placeholder">👕</div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="product-info">
+        <div class="product-name">{{ product.name }}</div>
+        <div class="product-price">₱{{ "%.0f"|format(product.price) }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="about-strip">
+  <p>Archive Manila is a curated fashion brand offering handpicked thrift and streetwear pieces with above average quality. We bring together timeless styles, rare finds, and everyday essentials sourced to help you express your identity through fashion.</p>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function filterCategory(btn, category) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+
+  const grid = document.getElementById('category-grid');
+  grid.style.opacity = '0.5';
+
+  const url = category ? `/api/products?category=${encodeURIComponent(category)}` : '/api/products';
+  const res = await fetch(url);
+  const products = await res.json();
+
+  grid.innerHTML = products.map(p => `
+    <div class="product-card" onclick="window.location='/product/${p.id}'">
+      <div class="product-img">
+        <div class="product-img-front">
+          ${p.image ? `<img src="${imgSrc(p.image)}" alt="${p.name}" loading="lazy">` : '<div class="product-img-placeholder">👕</div>'}
+          ${p.stock === 0 ? '<span class="out-of-stock-badge">Sold Out</span>' : ''}
+        </div>
+        <div class="product-img-back">
+          ${p.image_back
+            ? `<img src="${imgSrc(p.image_back)}" alt="${p.name} back" loading="lazy">`
+            : (p.image ? `<img src="${imgSrc(p.image)}" alt="${p.name}" loading="lazy">` : '<div class="product-img-placeholder">👕</div>')}
+        </div>
+      </div>
+      <div class="product-info">
+        <div class="product-name">${p.name}</div>
+        <div class="product-price">₱${Math.round(p.price)}</div>
+      </div>
+    </div>
+  `).join('');
+  grid.style.opacity = '1';
+}
+</script>
+{% endblock %}

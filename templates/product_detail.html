@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} — Archive Manila{% endblock %}
+
+{% block extra_styles %}
+<style>
+.back-btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--gray);
+  padding: 1.5rem 2.5rem;
+  transition: color 0.2s;
+}
+.back-btn:hover { color: var(--black); }
+
+.product-detail {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0; min-height: 80vh;
+}
+
+.product-gallery {
+  position: sticky; top: 60px;
+  background: var(--light-gray);
+  display: flex; flex-direction: column;
+  height: calc(100vh - 60px);
+}
+.main-image {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  padding: 3rem; overflow: hidden;
+}
+.main-image img {
+  max-height: 100%; max-width: 100%;
+  object-fit: contain;
+}
+.main-image-placeholder {
+  font-size: 8rem; color: #ccc;
+}
+.img-dots {
+  display: flex; justify-content: center; gap: 0.5rem;
+  padding: 1.5rem;
+}
+.img-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #ccc; cursor: pointer;
+  transition: background 0.2s;
+}
+.img-dot.active { background: var(--black); }
+
+.product-info-panel {
+  padding: 3rem 3rem 3rem 4rem;
+  overflow-y: auto;
+  border-left: 1px solid var(--border);
+}
+.product-title {
+  font-family: var(--font-display);
+  font-size: 2.5rem; font-weight: 900;
+  text-transform: uppercase; line-height: 1;
+  margin-bottom: 1.5rem;
+}
+.product-specs { margin-bottom: 1.5rem; }
+.spec-row {
+  display: flex; gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+.spec-label { font-weight: 600; min-width: 110px; color: var(--black); }
+.spec-value { color: #333; }
+
+.product-description {
+  margin: 1.5rem 0;
+  font-size: 0.9rem; line-height: 1.6; color: #555;
+}
+.desc-label { font-weight: 600; font-size: 0.85rem; text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: 0.5rem; display: block; }
+
+.qty-wrapper {
+  display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+}
+.qty-label { font-weight: 600; font-size: 0.85rem; text-transform: uppercase;
+  letter-spacing: 0.06em; }
+.qty-control {
+  display: flex; align-items: center; border: 1px solid var(--black);
+}
+.qty-control button {
+  width: 36px; height: 36px; background: none; border: none;
+  cursor: pointer; font-size: 1.1rem; transition: background 0.2s;
+  font-family: var(--font-body);
+}
+.qty-control button:hover { background: var(--black); color: white; }
+.qty-control span {
+  width: 50px; text-align: center; font-weight: 700;
+  font-size: 0.95rem; line-height: 36px; border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+}
+
+.action-buttons { display: flex; flex-direction: column; gap: 0.75rem; }
+.action-buttons .btn { font-size: 1rem; padding: 1rem; }
+
+.stock-indicator {
+  font-size: 0.78rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; margin-bottom: 1rem;
+}
+.in-stock { color: #2d7a2d; }
+.low-stock { color: #c07000; }
+.no-stock { color: var(--accent); }
+
+@media (max-width: 768px) {
+  .product-detail { grid-template-columns: 1fr; }
+  .product-gallery { position: static; height: 50vw; }
+  .product-info-panel { padding: 1.5rem; border-left: none; border-top: 1px solid var(--border); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="/" class="back-btn" style="margin-top:60px;display:inline-flex">
+  ← Back
+</a>
+
+<div class="product-detail">
+  <div class="product-gallery">
+    <div class="main-image">
+      {% if product.image %}
+        <img src="{{ img_src(product.image) }}" alt="{{ product.name }}" id="main-img">
+      {% else %}
+        <div class="main-image-placeholder">👕</div>
+      {% endif %}
+    </div>
+    <div class="img-dots">
+      <div class="img-dot active"></div>
+      <div class="img-dot"></div>
+    </div>
+  </div>
+
+  <div class="product-info-panel">
+    <h1 class="product-title">{{ product.name }}</h1>
+
+    <div class="product-specs">
+      <div class="spec-row">
+        <span class="spec-label">Price:</span>
+        <span class="spec-value" style="font-family:var(--font-display);font-size:1.1rem;font-weight:700">₱{{ "%.0f"|format(product.price) }}</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">Category:</span>
+        <span class="spec-value">{{ product.category }}</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">Condition:</span>
+        <span class="spec-value">New</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">Size:</span>
+        <span class="spec-value">Large</span>
+      </div>
+    </div>
+
+    {% if product.stock > 5 %}
+      <p class="stock-indicator in-stock">✓ In Stock ({{ product.stock }} available)</p>
+    {% elif product.stock > 0 %}
+      <p class="stock-indicator low-stock">⚡ Only {{ product.stock }} left!</p>
+    {% else %}
+      <p class="stock-indicator no-stock">✕ Out of Stock</p>
+    {% endif %}
+
+    <div class="qty-wrapper">
+      <span class="qty-label">Qty:</span>
+      <div class="qty-control">
+        <button onclick="changeQty(-1)">−</button>
+        <span id="qty-display">1</span>
+        <button onclick="changeQty(1)">+</button>
+      </div>
+    </div>
+
+    {% if product.description %}
+    <div class="product-description">
+      <span class="desc-label">Description</span>
+      {{ product.description }}
+    </div>
+    {% endif %}
+
+    <div class="action-buttons">
+      {% if product.stock > 0 %}
+        <button class="btn btn-primary" onclick="buyNow()">Buy Now</button>
+        <button class="btn btn-outline" onclick="addToCartFromPage()">Add to Cart</button>
+      {% else %}
+        <button class="btn btn-outline" disabled style="opacity:0.4;cursor:not-allowed">Sold Out</button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const product = {
+  id: {{ product.id }},
+  name: {{ product.name | tojson }},
+  price: {{ product.price }},
+  image: {{ (product.image or '') | tojson }},
+  stock: {{ product.stock }}
+};
+
+let qty = 1;
+
+function changeQty(delta) {
+  qty = Math.max(1, Math.min(product.stock || 1, qty + delta));
+  document.getElementById('qty-display').textContent = qty;
+}
+
+function addToCartFromPage() {
+  addToCart({...product, quantity: qty});
+  showToast(`${product.name} added to cart`);
+}
+
+function buyNow() {
+  addToCart({...product, quantity: qty});
+  window.location.href = '/checkout';
+}
+</script>
+{% endblock %}

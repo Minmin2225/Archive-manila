@@ -1,0 +1,293 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Order {{ order.order_number }}{% endblock %}
+{% block page_title %}Order Detail{% endblock %}
+
+{% block extra_styles %}
+<style>
+.detail-grid {
+  display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; align-items: start;
+}
+.detail-card { background: white; border: 1px solid var(--border); }
+.detail-card-header {
+  background: var(--cream); border-bottom: 1px solid var(--border);
+  padding: 0.85rem 1.25rem;
+  font-family: var(--font-display); font-size: 1rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.detail-card-body { padding: 1.25rem; }
+
+.info-row {
+  display: flex; gap: 0.5rem; padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border); font-size: 0.87rem;
+}
+.info-row:last-child { border-bottom: none; }
+.info-label { font-weight: 700; min-width: 130px; flex-shrink: 0; }
+
+.order-item-row {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.75rem 0; border-bottom: 1px solid var(--border); font-size: 0.87rem;
+}
+.order-item-row:last-child { border-bottom: none; }
+.oi-img { width: 48px; height: 48px; object-fit: cover; background: var(--light-gray); border: 1px solid var(--border); flex-shrink: 0; }
+.oi-name { flex: 1; font-weight: 600; }
+.oi-qty { color: var(--gray); font-size: 0.8rem; }
+.oi-price { font-weight: 700; }
+
+.proof-img {
+  width: 100%; max-height: 300px; object-fit: contain;
+  border: 1px solid var(--border); cursor: pointer;
+  background: var(--light-gray);
+}
+
+/* Timeline */
+.admin-timeline { padding: 0; list-style: none; }
+.at-step {
+  display: flex; gap: 0.75rem; padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border); font-size: 0.82rem;
+}
+.at-step:last-child { border-bottom: none; }
+.at-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--black); flex-shrink: 0; margin-top: 0.2rem;
+}
+.at-status { font-weight: 700; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.06em; }
+.at-time { color: var(--gray); font-size: 0.75rem; }
+.at-note { color: #555; font-style: italic; margin-top: 0.1rem; }
+
+/* Status action panel */
+.status-actions { display: flex; flex-direction: column; gap: 0.6rem; }
+.action-section-title {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--gray); margin-bottom: 0.25rem;
+}
+
+/* Proof lightbox */
+.lightbox {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+  z-index: 1000; display: none; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 90vw; max-height: 90vh; object-fit: contain; }
+.lightbox-close {
+  position: fixed; top: 1.5rem; right: 1.5rem; color: white; font-size: 2rem;
+  cursor: pointer; background: none; border: none; line-height: 1;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem">
+  <a href="/admin/orders" class="btn btn-outline btn-sm">← Back to Orders</a>
+  <h2 style="font-family:var(--font-display);font-size:1.5rem;font-weight:900;text-transform:uppercase">
+    {{ order.order_number }}
+  </h2>
+  {% set sc = order.status.lower().replace(' ', '-') %}
+  <span class="badge badge-{{ sc }}">{{ order.status }}</span>
+</div>
+
+<div class="detail-grid">
+  <div style="display:flex;flex-direction:column;gap:1.5rem">
+
+    <!-- Buyer Info -->
+    <div class="detail-card">
+      <div class="detail-card-header">Buyer Information</div>
+      <div class="detail-card-body">
+        <div class="info-row"><span class="info-label">Name:</span><span>{{ order.buyer_name }}</span></div>
+        <div class="info-row"><span class="info-label">Phone:</span><span>{{ order.buyer_phone }}</span></div>
+        <div class="info-row"><span class="info-label">Address:</span><span>{{ order.buyer_address }}</span></div>
+        {% if order.buyer_notes %}
+        <div class="info-row"><span class="info-label">Notes:</span><span>{{ order.buyer_notes }}</span></div>
+        {% endif %}
+        <div class="info-row"><span class="info-label">Shipping:</span><span style="text-transform:capitalize">{{ order.shipping_option }}</span></div>
+        <div class="info-row"><span class="info-label">Order Date:</span><span>{{ order.created_at | fmt_dt }}</span></div>
+      </div>
+    </div>
+
+    <!-- Items -->
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <span>Ordered Items</span>
+        <span style="font-size:0.8rem;font-weight:400;color:var(--gray)">{{ items|length }} item(s)</span>
+      </div>
+      <div class="detail-card-body">
+        {% for item in items %}
+        <div class="order-item-row">
+          {% if item.image %}
+            <img class="oi-img" src="{{ img_src(item.image) }}" alt="{{ item.product_name }}">
+          {% else %}
+            <div class="oi-img" style="display:flex;align-items:center;justify-content:center;font-size:1.4rem">👕</div>
+          {% endif %}
+          <div style="flex:1">
+            <div class="oi-name">{{ item.product_name }}</div>
+            <div class="oi-qty">Qty: {{ item.quantity }} × ₱{{ "%.0f"|format(item.product_price) }}</div>
+          </div>
+          <div class="oi-price">₱{{ "%.0f"|format(item.product_price * item.quantity) }}</div>
+        </div>
+        {% endfor %}
+        <div style="display:flex;justify-content:space-between;padding-top:0.75rem;font-size:0.87rem;color:var(--gray)">
+          <span>Subtotal</span><span>₱{{ "%.0f"|format(order.subtotal) }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding-top:0.3rem;font-size:0.87rem;color:var(--gray)">
+          <span>Shipping</span><span>₱{{ "%.0f"|format(order.shipping_fee) }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding-top:0.5rem;font-family:var(--font-display);font-size:1.2rem;font-weight:800;border-top:2px solid var(--black);margin-top:0.5rem">
+          <span>Total</span><span>₱{{ "%.0f"|format(order.total) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Proof -->
+    <div class="detail-card">
+      <div class="detail-card-header">Payment Proof</div>
+      <div class="detail-card-body">
+        {% if order.payment_proof %}
+          <img class="proof-img" src="{{ img_src(order.payment_proof) }}" alt="Payment proof" onclick="openLightbox(this.src)">
+          <p style="font-size:0.75rem;color:var(--gray);margin-top:0.5rem">Click image to enlarge</p>
+        {% else %}
+          <p style="color:var(--gray);font-size:0.85rem">No payment proof uploaded</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:1.5rem">
+
+    <!-- Status Update -->
+    <div class="detail-card">
+      <div class="detail-card-header">Update Status</div>
+      <div class="detail-card-body">
+        {% if order.status == 'Pending Verification' %}
+        <div class="action-section-title">Payment Verification</div>
+        <div class="status-actions">
+          <button class="btn btn-success" onclick="updateStatus('Verified', 'Payment verified by admin')">
+            ✓ Approve Payment
+          </button>
+          <button class="btn btn-danger" onclick="promptReject()">
+            ✕ Reject Payment
+          </button>
+        </div>
+        {% elif order.status == 'Verified' %}
+        <div class="action-section-title">Processing</div>
+        <button class="btn btn-primary" onclick="updateStatus('Preparing', 'Order is being prepared')">
+          📦 Mark as Preparing
+        </button>
+        {% elif order.status == 'Preparing' %}
+        <div class="action-section-title">Shipping</div>
+        <button class="btn btn-accent" onclick="promptShipped()">
+          🚚 Mark as Shipped
+        </button>
+        {% elif order.status == 'Shipped' %}
+        <div class="action-section-title">Completion</div>
+        <button class="btn btn-success" onclick="updateStatus('Completed', 'Order delivered and completed')">
+          ✓ Mark as Completed
+        </button>
+        {% elif order.status in ['Completed', 'Rejected'] %}
+        <p style="color:var(--gray);font-size:0.85rem">This order is finalized ({{ order.status }}).</p>
+        {% endif %}
+
+        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
+          <div class="action-section-title" style="margin-bottom:0.5rem">Custom Status Update</div>
+          <select id="custom-status" class="form-group" style="width:100%;padding:0.6rem 0.8rem;border:1px solid var(--border);background:var(--cream);font-family:var(--font-body);font-size:0.85rem;margin-bottom:0.6rem;-webkit-appearance:none">
+            <option value="">— Select Status —</option>
+            {% for s in ['Pending Verification', 'Verified', 'Rejected', 'Preparing', 'Shipped', 'Completed'] %}
+            <option value="{{ s }}" {% if s == order.status %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+          <input type="text" id="custom-note" placeholder="Add a note (optional)" style="width:100%;padding:0.6rem 0.8rem;border:1px solid var(--border);background:var(--cream);font-family:var(--font-body);font-size:0.85rem;margin-bottom:0.6rem;outline:none;">
+          <button class="btn btn-primary" style="width:100%" onclick="applyCustomStatus()">Apply Status</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status History -->
+    <div class="detail-card">
+      <div class="detail-card-header">Status History</div>
+      <div class="detail-card-body" style="padding:0.75rem 1.25rem">
+        <ul class="admin-timeline" id="status-timeline">
+          {% for h in history %}
+          <li class="at-step">
+            <div class="at-dot"></div>
+            <div>
+              <div class="at-status">{{ h.status }}</div>
+              <div class="at-time">{{ h.changed_at | fmt_dt }}</div>
+              {% if h.note %}<div class="at-note">{{ h.note }}</div>{% endif %}
+            </div>
+          </li>
+          {% else %}
+          <li style="color:var(--gray);font-size:0.85rem;padding:0.5rem 0">No history yet</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close">✕</button>
+  <img id="lightbox-img" src="" alt="Payment proof">
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const orderId = {{ order.id }};
+
+async function updateStatus(status, defaultNote) {
+  const note = defaultNote || '';
+  try {
+    const res = await fetch(`/api/admin/orders/${orderId}/status`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({ status, note })
+    });
+    if (res.redirected || res.status === 401) {
+      window.location.href = '/admin/login'; return;
+    }
+    const data = await res.json();
+    if (data.success) {
+      showAdminToast(`✓ Status updated to: ${status}`, 'success');
+      setTimeout(() => location.reload(), 800);
+    } else {
+      showAdminToast(data.error || 'Update failed', 'error');
+    }
+  } catch(e) {
+    showAdminToast('Network error. Please try again.', 'error');
+  }
+}
+
+function promptReject() {
+  const reason = prompt('Reason for rejection (optional):');
+  if (reason === null) return; // cancelled
+  updateStatus('Rejected', reason || 'Payment rejected by admin');
+}
+
+function promptShipped() {
+  const tracking = prompt('Tracking number / courier info (optional):');
+  if (tracking === null) return;
+  updateStatus('Shipped', tracking ? `Shipped via: ${tracking}` : 'Order shipped by admin');
+}
+
+function applyCustomStatus() {
+  const status = document.getElementById('custom-status').value;
+  const note = document.getElementById('custom-note').value.trim();
+  if (!status) { alert('Please select a status'); return; }
+  if (confirm(`Change status to "${status}"?`)) {
+    updateStatus(status, note || `Status changed to ${status} by admin`);
+  }
+}
+
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+</script>
+{% endblock %}

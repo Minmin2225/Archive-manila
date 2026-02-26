@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Order Confirmed — Archive Manila{% endblock %}
+
+{% block extra_styles %}
+<style>
+.confirm-wrapper {
+  max-width: 700px; margin: 0 auto; padding: 3rem 2rem;
+  text-align: center; padding-top: calc(60px + 3rem);
+}
+.confirm-icon {
+  width: 80px; height: 80px;
+  background: var(--black); color: white;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.5rem; margin: 0 auto 1.5rem;
+}
+.confirm-title {
+  font-family: var(--font-display); font-size: 2.5rem; font-weight: 900;
+  text-transform: uppercase; line-height: 1; margin-bottom: 0.75rem;
+}
+.confirm-subtitle { color: var(--gray); font-size: 0.95rem; margin-bottom: 2rem; line-height: 1.6; }
+.order-number-badge {
+  display: inline-block;
+  background: var(--cream); border: 2px solid var(--black);
+  padding: 0.75rem 2rem;
+  font-family: var(--font-display); font-size: 1.3rem; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-bottom: 2.5rem;
+}
+.order-details {
+  background: white; border: 1px solid var(--border);
+  text-align: left; margin-bottom: 2rem;
+}
+.od-header {
+  background: var(--black); color: white;
+  padding: 1rem 1.5rem;
+  font-family: var(--font-display); font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.od-body { padding: 1.5rem; }
+.od-row {
+  display: flex; gap: 0.5rem;
+  padding: 0.5rem 0; border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+.od-row:last-child { border-bottom: none; }
+.od-label { font-weight: 700; min-width: 130px; }
+
+.items-list { margin-top: 1.5rem; }
+.confirm-item {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.75rem 0; border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+.confirm-item-img {
+  width: 50px; height: 50px; object-fit: cover;
+  background: var(--light-gray); border: 1px solid var(--border);
+}
+.confirm-item-name { flex: 1; font-weight: 600; }
+.confirm-item-price { font-weight: 700; }
+
+.confirm-actions {
+  display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
+}
+.confirm-actions .btn { flex: 1; min-width: 180px; }
+
+.status-pending {
+  display: inline-block;
+  background: #fff3cd; color: #856404;
+  border: 1px solid #ffc107;
+  padding: 0.4rem 1rem;
+  font-size: 0.78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 1rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="confirm-wrapper">
+  <div class="confirm-icon">✓</div>
+  <div class="status-pending">⏳ Pending Verification</div>
+  <h1 class="confirm-title">Order<br>Submitted!</h1>
+  <p class="confirm-subtitle">
+    Your order has been submitted and is waiting for payment verification.<br>
+    We'll process your order once payment is confirmed.
+  </p>
+  <div class="order-number-badge">Order #{{ order.order_number }}</div>
+
+  <div class="order-details">
+    <div class="od-header">Order Details</div>
+    <div class="od-body">
+      <div class="od-row"><span class="od-label">Name:</span><span>{{ order.buyer_name }}</span></div>
+      <div class="od-row"><span class="od-label">Phone:</span><span>{{ order.buyer_phone }}</span></div>
+      <div class="od-row"><span class="od-label">Address:</span><span>{{ order.buyer_address }}</span></div>
+      <div class="od-row"><span class="od-label">Shipping:</span><span>{{ order.shipping_option | title }}</span></div>
+      {% if order.buyer_notes %}
+      <div class="od-row"><span class="od-label">Notes:</span><span>{{ order.buyer_notes }}</span></div>
+      {% endif %}
+      <div class="od-row" style="font-weight:700">
+        <span class="od-label">Total:</span>
+        <span style="font-family:var(--font-display);font-size:1.1rem">₱{{ "%.0f"|format(order.total) }}</span>
+      </div>
+
+      <div class="items-list">
+        {% for item in items %}
+        <div class="confirm-item">
+          {% if item.image %}
+            <img class="confirm-item-img" src="{{ img_src(item.image) }}" alt="{{ item.product_name }}">
+          {% else %}
+            <div class="confirm-item-img" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem">👕</div>
+          {% endif %}
+          <div class="confirm-item-name">{{ item.product_name }} <span style="color:var(--gray);font-weight:400">× {{ item.quantity }}</span></div>
+          <div class="confirm-item-price">₱{{ "%.0f"|format(item.product_price * item.quantity) }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm-actions">
+    <a href="/my-orders?phone={{ order.buyer_phone }}" class="btn btn-primary">View My Orders</a>
+    <a href="/" class="btn btn-outline">Continue Shopping</a>
+  </div>
+</div>
+{% endblock %}

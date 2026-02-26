@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block title %}Track Order — Archive Manila{% endblock %}
+
+{% block extra_styles %}
+<style>
+.track-wrapper { max-width: 700px; margin: 0 auto; padding: 3rem 2rem; padding-top: calc(60px + 3rem); }
+.track-header { text-align: center; margin-bottom: 2.5rem; }
+.track-header h1 {
+  font-family: var(--font-display); font-size: 2.5rem; font-weight: 900;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.track-header p { color: var(--gray); font-size: 0.9rem; margin-top: 0.5rem; }
+
+.track-form {
+  background: white; border: 1px solid var(--border);
+  padding: 2rem; margin-bottom: 2rem;
+}
+.track-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-group { margin-bottom: 1rem; }
+.form-group label {
+  display: block; font-size: 0.78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.4rem;
+}
+.form-group input {
+  width: 100%; padding: 0.75rem 1rem;
+  border: 1px solid var(--border); background: var(--cream);
+  font-family: var(--font-body); font-size: 0.9rem;
+  outline: none; transition: border-color 0.2s;
+}
+.form-group input:focus { border-color: var(--black); }
+.track-error { color: var(--accent); font-size: 0.8rem; margin-top: 0.5rem; display: none; }
+.track-error.show { display: block; }
+
+/* Timeline */
+.order-result { display: none; }
+.order-result.show { display: block; }
+
+.order-num-display {
+  font-family: var(--font-display); font-size: 1.5rem; font-weight: 900;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  margin-bottom: 1.5rem;
+}
+.current-status {
+  display: inline-block; padding: 0.4rem 1.2rem;
+  font-size: 0.78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 1.5rem;
+}
+.status-Pending-Verification { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+.status-Verified { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+.status-Rejected { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.status-Preparing { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.status-Shipped { background: #cce5ff; color: #004085; border: 1px solid #b8daff; }
+.status-Completed { background: var(--black); color: white; border: 1px solid var(--black); }
+
+.timeline {
+  position: relative; padding-left: 2rem;
+  margin-bottom: 2rem;
+}
+.timeline::before {
+  content: ''; position: absolute; left: 0.55rem; top: 0; bottom: 0;
+  width: 2px; background: var(--border);
+}
+.timeline-step {
+  position: relative; margin-bottom: 1.5rem;
+  padding-left: 1rem;
+}
+.timeline-step:last-child { margin-bottom: 0; }
+.timeline-dot {
+  position: absolute; left: -1.55rem; top: 0.2rem;
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--border); background: var(--cream);
+  transition: all 0.3s;
+}
+.timeline-step.done .timeline-dot { background: var(--black); border-color: var(--black); }
+.timeline-step.current .timeline-dot {
+  background: var(--accent); border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(200,16,46,0.2);
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(200,16,46,0.2); }
+  50% { box-shadow: 0 0 0 8px rgba(200,16,46,0.1); }
+}
+.timeline-label {
+  font-weight: 700; font-size: 0.88rem;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.timeline-step.done .timeline-label { color: var(--black); }
+.timeline-step:not(.done):not(.current) .timeline-label { color: var(--gray); }
+.timeline-step.current .timeline-label { color: var(--accent); }
+.timeline-time { font-size: 0.75rem; color: var(--gray); margin-top: 0.2rem; }
+.timeline-note { font-size: 0.8rem; color: #555; margin-top: 0.2rem; font-style: italic; }
+
+.order-items-summary {
+  background: white; border: 1px solid var(--border); margin-top: 1.5rem;
+}
+.ois-header {
+  background: var(--cream); border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1.25rem;
+  font-size: 0.78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.ois-body { padding: 1rem 1.25rem; }
+.ois-item {
+  display: flex; justify-content: space-between;
+  font-size: 0.85rem; padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.ois-item:last-child { border-bottom: none; }
+.ois-total {
+  display: flex; justify-content: space-between;
+  font-family: var(--font-display); font-size: 1rem; font-weight: 800;
+  padding-top: 0.75rem; margin-top: 0.25rem;
+  border-top: 2px solid var(--black);
+}
+
+.realtime-badge {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.72rem; color: #2d7a2d; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-left: 1rem;
+}
+.live-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #2d7a2d;
+  animation: blink 1.5s infinite;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="track-wrapper">
+  <div class="track-header">
+    <h1>Track Your Order</h1>
+    <p>Enter your order number and phone number to see the status.</p>
+  </div>
+
+  <div class="track-form">
+    <div class="track-form-grid">
+      <div class="form-group">
+        <label>Order Number</label>
+        <input type="text" id="track-order-num" placeholder="e.g. AM-20240101-ABC123">
+      </div>
+      <div class="form-group">
+        <label>Phone Number</label>
+        <input type="tel" id="track-phone" placeholder="e.g. 09171234567">
+      </div>
+    </div>
+    <div class="track-error" id="track-error"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="trackOrder()">Track Order</button>
+  </div>
+
+  <div class="order-result" id="order-result">
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem">
+      <div class="order-num-display" id="res-order-num"></div>
+      <span class="realtime-badge"><span class="live-dot"></span> Live Updates</span>
+    </div>
+    <div id="res-status-badge"></div>
+
+    <div class="timeline" id="res-timeline"></div>
+
+    <div class="order-items-summary">
+      <div class="ois-header">Items Ordered</div>
+      <div class="ois-body" id="res-items"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const STATUS_ORDER = [
+  'Pending Verification', 'Verified', 'Preparing', 'Shipped', 'Completed'
+];
+
+let sseSource = null;
+let currentOrderNumber = null;
+
+// Auto-fill from URL params
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('order')) {
+    document.getElementById('track-order-num').value = params.get('order');
+    if (params.get('phone')) {
+      document.getElementById('track-phone').value = params.get('phone');
+      trackOrder();
+    }
+  }
+});
+
+async function trackOrder() {
+  const orderNum = document.getElementById('track-order-num').value.trim().toUpperCase();
+  const phone = document.getElementById('track-phone').value.trim();
+  const errEl = document.getElementById('track-error');
+
+  if (!orderNum || !phone) {
+    errEl.textContent = 'Please fill in both fields.'; errEl.classList.add('show'); return;
+  }
+  errEl.classList.remove('show');
+
+  try {
+    const res = await fetch('/api/track-order', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ order_number: orderNum, phone })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.error; errEl.classList.add('show');
+      document.getElementById('order-result').classList.remove('show');
+      return;
+    }
+    renderOrderResult(data);
+    subscribeToUpdates(data.order.order_number, phone);
+  } catch (e) {
+    errEl.textContent = 'Network error. Please try again.'; errEl.classList.add('show');
+  }
+}
+
+function renderOrderResult(data) {
+  const { order, items, history } = data;
+  currentOrderNumber = order.order_number;
+
+  document.getElementById('res-order-num').textContent = '#' + order.order_number;
+
+  const statusClass = 'status-' + order.status.replace(/\s+/g, '-');
+  document.getElementById('res-status-badge').innerHTML =
+    `<span class="current-status ${statusClass}">${order.status}</span>`;
+
+  // Timeline
+  const isRejected = order.status === 'Rejected';
+  const timelineEl = document.getElementById('res-timeline');
+
+  if (isRejected) {
+    // Show rejection timeline
+    const histMap = {};
+    history.forEach(h => { histMap[h.status] = h; });
+    timelineEl.innerHTML = ['Pending Verification', 'Rejected'].map(s => {
+      const h = histMap[s];
+      const done = !!h;
+      const current = s === 'Rejected' && done;
+      return `
+        <div class="timeline-step ${done ? (current ? 'current' : 'done') : ''}">
+          <div class="timeline-dot"></div>
+          <div class="timeline-label">${s}</div>
+          ${h ? `<div class="timeline-time">${formatDate(h.changed_at)}</div>` : ''}
+          ${h?.note ? `<div class="timeline-note">${h.note}</div>` : ''}
+        </div>`;
+    }).join('');
+  } else {
+    const histMap = {};
+    history.forEach(h => { histMap[h.status] = h; });
+    const curIdx = STATUS_ORDER.indexOf(order.status);
+
+    timelineEl.innerHTML = STATUS_ORDER.map((s, i) => {
+      const done = i <= curIdx;
+      const current = i === curIdx;
+      const h = histMap[s];
+      return `
+        <div class="timeline-step ${done ? (current ? 'current' : 'done') : ''}">
+          <div class="timeline-dot"></div>
+          <div class="timeline-label">${s}</div>
+          ${h ? `<div class="timeline-time">${formatDate(h.changed_at)}</div>` : ''}
+          ${h?.note ? `<div class="timeline-note">${h.note}</div>` : ''}
+        </div>`;
+    }).join('');
+  }
+
+  // Items
+  document.getElementById('res-items').innerHTML = items.map(item => `
+    <div class="ois-item">
+      <span>${item.product_name} × ${item.quantity}</span>
+      <span>₱${Math.round(item.product_price * item.quantity)}</span>
+    </div>
+  `).join('') + `
+    <div class="ois-total">
+      <span>Total</span>
+      <span>₱${Math.round(order.total)}</span>
+    </div>`;
+
+  document.getElementById('order-result').classList.add('show');
+}
+
+function subscribeToUpdates(orderNumber, phone) {
+  if (sseSource) sseSource.close();
+  sseSource = new EventSource(`/api/order-status-stream/${orderNumber}`);
+  sseSource.onmessage = async (e) => {
+    const event = JSON.parse(e.data);
+    if (event.type === 'status_update' && event.order_number === orderNumber) {
+      // Re-fetch full order data
+      const res = await fetch('/api/track-order', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ order_number: orderNumber, phone })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        renderOrderResult(data);
+        showToast(`Order status updated: ${event.new_status}`);
+      }
+    }
+  };
+}
+
+function formatDate(ts) {
+  if (!ts) return '';
+  const d = new Date(ts + (ts.includes('Z') ? '' : '+00:00'));
+  return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+</script>
+{% endblock %}

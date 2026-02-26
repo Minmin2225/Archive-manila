@@ -1,0 +1,77 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-card-label">Total Orders</div>
+    <div class="stat-card-value">{{ stats.total_orders }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-label">Pending</div>
+    <div class="stat-card-value" style="color:var(--accent)">{{ stats.pending }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-label">Verified</div>
+    <div class="stat-card-value" style="color:#0c5460">{{ stats.verified }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-label">Shipped</div>
+    <div class="stat-card-value" style="color:#004085">{{ stats.shipped }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-label">Completed</div>
+    <div class="stat-card-value" style="color:#155724">{{ stats.completed }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-label">Revenue</div>
+    <div class="stat-card-value" style="font-size:1.5rem">₱{{ "%.0f"|format(stats.total_revenue) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-label">Products</div>
+    <div class="stat-card-value">{{ stats.total_products }}</div>
+  </div>
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+  <h2 style="font-family:var(--font-display);font-size:1.3rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em">Recent Orders</h2>
+  <a href="/admin/orders" class="btn btn-outline btn-sm">View All →</a>
+</div>
+
+<div class="table-wrapper">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Order No.</th>
+        <th>Buyer</th>
+        <th>Phone</th>
+        <th>Total</th>
+        <th>Status</th>
+        <th>Date</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for order in recent_orders %}
+      <tr>
+        <td style="font-weight:700;font-family:var(--font-display)">{{ order.order_number }}</td>
+        <td>{{ order.buyer_name }}</td>
+        <td>{{ order.buyer_phone }}</td>
+        <td style="font-weight:700">₱{{ "%.0f"|format(order.total) }}</td>
+        <td>
+          {% set sc = order.status.lower().replace(' ', '-') %}
+          <span class="badge badge-{{ sc }}">{{ order.status }}</span>
+        </td>
+        <td style="color:var(--gray);font-size:0.8rem">{{ order.created_at | fmt_dt }}</td>
+        <td>
+          <a href="/admin/orders/{{ order.id }}" class="btn btn-sm btn-primary">View</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="text-align:center;color:var(--gray);padding:2rem">No orders yet</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Archive Manila{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black: #0a0a0a;
+  --white: #f5f4f0;
+  --cream: #f0ede6;
+  --accent: #c8102e;
+  --gray: #888;
+  --light-gray: #e8e5df;
+  --border: #d8d4cc;
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-body: 'Barlow', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--cream);
+  color: var(--black);
+  min-height: 100vh;
+}
+
+/* Ensure pages with positioned nav don't lose top space on non-hero pages */
+.page-offset { padding-top: 60px; }
+
+a { color: inherit; text-decoration: none; }
+
+.nav {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 100;
+  background: transparent;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2.5rem;
+  height: 60px;
+}
+
+.nav-logo { display: none; }
+
+.nav-links { display: flex; gap: 2rem; align-items: center; }
+.nav-links a {
+  color: var(--black);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  transition: opacity 0.2s;
+}
+.nav-links a:hover { opacity: 0.5; }
+
+.cart-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--black); position: relative; padding: 0.3rem;
+}
+.cart-btn svg { width: 26px; height: 26px; stroke-width: 1.5; }
+.cart-count {
+  position: absolute; top: -4px; right: -4px;
+  background: var(--accent); color: white;
+  font-size: 0.65rem; font-weight: 700;
+  width: 17px; height: 17px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  display: none;
+}
+
+/* Cart Drawer */
+.cart-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.cart-overlay.open { opacity: 1; pointer-events: all; }
+
+.cart-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(420px, 100vw);
+  background: var(--white);
+  z-index: 201;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex; flex-direction: column;
+}
+.cart-drawer.open { transform: translateX(0); }
+
+.cart-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.5rem;
+  border-bottom: 2px solid var(--black);
+}
+.cart-header h2 {
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 1.6rem;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.close-btn {
+  background: none; border: none; cursor: pointer; font-size: 1.5rem; padding: 0.2rem;
+  line-height: 1;
+}
+
+.cart-items { flex: 1; overflow-y: auto; padding: 1rem 1.5rem; }
+.cart-item {
+  display: grid; grid-template-columns: 64px 1fr auto;
+  gap: 1rem; align-items: start;
+  padding: 1rem 0; border-bottom: 1px solid var(--border);
+}
+.cart-item-img {
+  width: 64px; height: 64px; object-fit: cover;
+  background: var(--light-gray);
+  border: 1px solid var(--border);
+}
+.cart-item-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.3rem; }
+.cart-item-price { color: var(--gray); font-size: 0.85rem; }
+.qty-ctrl {
+  display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;
+}
+.qty-btn {
+  width: 24px; height: 24px; border: 1px solid var(--black);
+  background: none; cursor: pointer; font-size: 0.9rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.qty-val { font-size: 0.85rem; font-weight: 600; min-width: 20px; text-align: center; }
+.remove-item { background: none; border: none; cursor: pointer; color: var(--gray); font-size: 1.1rem; padding: 0; line-height: 1; }
+
+.cart-footer { padding: 1.5rem; border-top: 2px solid var(--black); }
+.cart-subtotal {
+  display: flex; justify-content: space-between;
+  font-family: var(--font-display); font-size: 1.1rem; font-weight: 700;
+  text-transform: uppercase; margin-bottom: 1rem;
+}
+.btn {
+  display: block; width: 100%;
+  padding: 0.9rem 1.5rem;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 1rem; text-transform: uppercase; letter-spacing: 0.08em;
+  border: 2px solid var(--black); cursor: pointer;
+  transition: all 0.2s; text-align: center;
+}
+.btn-primary { background: var(--black); color: var(--white); }
+.btn-primary:hover { background: #222; }
+.btn-outline { background: transparent; color: var(--black); margin-top: 0.5rem; }
+.btn-outline:hover { background: var(--black); color: var(--white); }
+.btn-accent { background: var(--accent); color: white; border-color: var(--accent); }
+.btn-accent:hover { background: #a80d26; }
+
+.empty-cart {
+  text-align: center; padding: 3rem 1rem; color: var(--gray);
+  font-size: 0.9rem;
+}
+
+/* Toast */
+.toast-container {
+  position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+  z-index: 999; display: flex; flex-direction: column; gap: 0.5rem; align-items: center;
+}
+.toast {
+  background: var(--black); color: var(--white);
+  padding: 0.75rem 1.5rem;
+  font-size: 0.85rem; font-weight: 500;
+  border-left: 3px solid var(--accent);
+  animation: slideUp 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+  white-space: nowrap;
+}
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes fadeOut {
+  to { opacity: 0; transform: translateY(-10px); }
+}
+
+
+/* ── Footer Modals ──────────────────────────────────────────────────── */
+.fmodal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 500;
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s;
+}
+.fmodal-overlay.open {
+  opacity: 1; pointer-events: all;
+}
+.fmodal {
+  background: var(--white);
+  width: min(620px, 100vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  transform: translateY(40px);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  border-top: 3px solid var(--black);
+}
+.fmodal-overlay.open .fmodal {
+  transform: translateY(0);
+}
+.fmodal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 2px solid var(--black);
+  position: sticky; top: 0;
+  background: var(--white); z-index: 1;
+}
+.fmodal-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem; font-weight: 900;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.fmodal-close {
+  background: none; border: none; cursor: pointer;
+  font-size: 1.3rem; line-height: 1; padding: 0.2rem;
+  color: var(--black); transition: opacity 0.2s;
+}
+.fmodal-close:hover { opacity: 0.5; }
+.fmodal-body {
+  padding: 1.75rem 1.5rem;
+  font-size: 0.9rem; line-height: 1.75; color: #333;
+}
+.fmodal-body h3 {
+  font-family: var(--font-display);
+  font-size: 1rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin: 1.25rem 0 0.4rem; color: var(--black);
+}
+.fmodal-body h3:first-child { margin-top: 0; }
+.fmodal-body p { margin-bottom: 0.75rem; }
+.fmodal-body ul { padding-left: 1.25rem; margin-bottom: 0.75rem; }
+.fmodal-body ul li { margin-bottom: 0.3rem; }
+.fmodal-body a { color: var(--black); font-weight: 600; text-decoration: underline; }
+.fmodal-contact-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;
+}
+.fmodal-contact-card {
+  border: 1px solid var(--border); padding: 1rem;
+  text-align: center;
+}
+.fmodal-contact-card .icon { font-size: 1.75rem; margin-bottom: 0.4rem; }
+.fmodal-contact-card strong { display: block; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.25rem; }
+.fmodal-contact-card a { font-size: 0.85rem; }
+.fmodal-social-link {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 1rem; border: 1px solid var(--border);
+  margin-bottom: 0.75rem; transition: background 0.2s;
+  text-decoration: none !important;
+}
+.fmodal-social-link:hover { background: var(--cream); }
+.fmodal-social-icon { font-size: 2rem; flex-shrink: 0; }
+.fmodal-social-info strong { display: block; font-size: 0.88rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.fmodal-social-info span { font-size: 0.8rem; color: var(--gray); }
+@media (max-width: 480px) {
+  .fmodal-contact-grid { grid-template-columns: 1fr; }
+  .fmodal { border-radius: 0; }
+}
+
+footer {
+  background: var(--black); color: var(--white);
+  padding: 3rem 2rem 2rem;
+  margin-top: 5rem;
+}
+.footer-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr) auto;
+  gap: 2rem; margin-bottom: 2rem;
+}
+.footer-col h4 {
+  font-family: var(--font-display); font-size: 0.75rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  color: #666; margin-bottom: 0.8rem;
+}
+.footer-col p, .footer-col a {
+  font-size: 0.8rem; color: #999; display: block;
+  margin-bottom: 0.3rem; transition: color 0.2s;
+}
+.footer-col a:hover { color: var(--white); }
+.footer-logo {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: 2rem; line-height: 1; text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.footer-bottom {
+  border-top: 1px solid #222; padding-top: 1.5rem;
+  font-size: 0.75rem; color: #444; text-align: center;
+}
+
+@media (max-width: 768px) {
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+  .footer-logo { display: none; }
+}
+</style>
+{% block extra_styles %}{% endblock %}
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-links">
+    <a href="/#products">Latest Arrivals</a>
+    <a href="/#category">Fashion Category</a>
+    <a href="/my-orders">My Orders</a>
+  </div>
+  <button class="cart-btn" onclick="toggleCart()" aria-label="Cart">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6h11M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z"/>
+    </svg>
+    <span class="cart-count" id="cart-count">0</span>
+  </button>
+</nav>
+
+<div class="cart-overlay" id="cart-overlay" onclick="toggleCart()"></div>
+<div class="cart-drawer" id="cart-drawer">
+  <div class="cart-header">
+    <h2>Cart</h2>
+    <button class="close-btn" onclick="toggleCart()">✕</button>
+  </div>
+  <div class="cart-items" id="cart-items-list">
+    <div class="empty-cart">Your cart is empty</div>
+  </div>
+  <div class="cart-footer" id="cart-footer" style="display:none">
+    <div class="cart-subtotal">
+      <span>Sub total:</span>
+      <span id="cart-subtotal">₱0</span>
+    </div>
+    <a href="/checkout" class="btn btn-primary">Check Out</a>
+    <button class="btn btn-outline" onclick="toggleCart()">Continue Shopping</button>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+{% block content %}{% endblock %}
+
+<!-- ── Footer Modals ──────────────────────────────────────────────────────── -->
+<div class="fmodal-overlay" id="fmodal-overlay" onclick="closeFModal()">
+  <div class="fmodal" onclick="event.stopPropagation()">
+    <div class="fmodal-header">
+      <span class="fmodal-title" id="fmodal-title"></span>
+      <button class="fmodal-close" onclick="closeFModal()">✕</button>
+    </div>
+    <div class="fmodal-body" id="fmodal-body"></div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h4>Customer Service</h4>
+      <a href="#" onclick="openFModal('faq');return false">FAQ</a>
+      <a href="#" onclick="openFModal('shipping');return false">Shipping Policy</a>
+      <a href="#" onclick="openFModal('returns');return false">Return Policy</a>
+      <a href="#" onclick="openFModal('contact');return false">Contact Us</a>
+    </div>
+    <div class="footer-col">
+      <h4>Terms & Policy</h4>
+      <a href="#" onclick="openFModal('privacy');return false">Privacy Policy</a>
+      <a href="#" onclick="openFModal('terms');return false">Terms of Service</a>
+      <a href="#" onclick="openFModal('cookies');return false">Cookie Policy</a>
+    </div>
+    <div class="footer-col">
+      <h4>Social</h4>
+      <a href="#" onclick="openFModal('instagram');return false">Instagram</a>
+      <a href="#" onclick="openFModal('tiktok');return false">TikTok</a>
+      <a href="https://web.facebook.com/lancelandicho99" target="_blank" rel="noopener">Facebook</a>
+    </div>
+    <div class="footer-logo">Archive<br>Manila</div>
+  </div>
+  <div class="footer-bottom">© 2024 Archive Manila. All rights reserved.</div>
+</footer>
+
+<script src="/static/js/cart.js"></script>
+{% block scripts %}{% endblock %}
+
+<script>
+const FMODAL_CONTENT = {
+  faq: {
+    title: 'FAQ',
+    body: `
+      <h3>How do I place an order?</h3>
+      <p>Browse our products, add items to your cart, and proceed to checkout. Fill in your delivery details and upload your payment proof to complete the order.</p>
+
+      <h3>What payment methods do you accept?</h3>
+      <p>We accept GCash, Maya, and bank transfers. After completing your order, upload a screenshot of your payment as proof.</p>
+
+      <h3>How long does delivery take?</h3>
+      <p>Orders are typically processed within 1–2 business days after payment verification. Delivery takes 3–7 business days depending on your location.</p>
+
+      <h3>Can I cancel my order?</h3>
+      <p>You may request a cancellation before your order status changes to "Preparing." Message us on Facebook as soon as possible.</p>
+
+      <h3>How do I track my order?</h3>
+      <p>Use the <a href="/track-order">Track Order</a> page with your order number and phone number to see real-time status updates.</p>
+
+      <h3>What sizes are available?</h3>
+      <p>Each product listing shows available sizes. We carry thrift and streetwear pieces, so sizes vary per item. Check the product description for details.</p>
+
+      <h3>Are the items authentic?</h3>
+      <p>Yes. All items are carefully sourced and inspected for quality. Product descriptions include condition details.</p>
+    `
+  },
+  shipping: {
+    title: 'Shipping Policy',
+    body: `
+      <h3>Processing Time</h3>
+      <p>Orders are processed within 1–2 business days after payment is verified. You will receive a status update once your order is being prepared.</p>
+
+      <h3>Delivery Areas</h3>
+      <p>We ship nationwide across the Philippines via trusted courier partners (J&T, Ninja Van, LBC).</p>
+
+      <h3>Estimated Delivery Time</h3>
+      <ul>
+        <li><strong>Metro Manila:</strong> 2–4 business days</li>
+        <li><strong>Luzon (outside Metro):</strong> 3–5 business days</li>
+        <li><strong>Visayas & Mindanao:</strong> 5–7 business days</li>
+        <li><strong>Remote areas:</strong> 7–10 business days</li>
+      </ul>
+
+      <h3>Shipping Fees</h3>
+      <p>Shipping is free on all orders. No hidden charges.</p>
+
+      <h3>Order Tracking</h3>
+      <p>Once your order is shipped, you can track it on the <a href="/track-order">Track Order</a> page using your order number and phone number.</p>
+
+      <h3>Delays</h3>
+      <p>Delivery times may be affected by weather conditions, holidays, or courier delays. We will notify you of any significant delays.</p>
+    `
+  },
+  returns: {
+    title: 'Return Policy',
+    body: `
+      <h3>Return Eligibility</h3>
+      <p>Items may be returned within <strong>7 days</strong> of delivery if they arrive damaged, defective, or significantly different from the listing.</p>
+
+      <h3>Non-Returnable Items</h3>
+      <ul>
+        <li>Items returned after 7 days of delivery</li>
+        <li>Items that have been worn, washed, or altered</li>
+        <li>Sale or discounted items (unless defective)</li>
+        <li>Items without original tags or packaging</li>
+      </ul>
+
+      <h3>How to Request a Return</h3>
+      <p>Message us on <a href="https://web.facebook.com/lancelandicho99" target="_blank">Facebook</a> with your order number, photos of the item, and reason for return. We will review your request within 2 business days.</p>
+
+      <h3>Refund Process</h3>
+      <p>Approved returns are refunded via GCash or bank transfer within 3–5 business days after we receive the item.</p>
+
+      <h3>Exchange</h3>
+      <p>Exchanges are subject to stock availability. Contact us before sending any items back.</p>
+    `
+  },
+  contact: {
+    title: 'Contact Us',
+    body: `
+      <p>We'd love to hear from you! Reach out through any of the channels below and we'll get back to you as soon as possible.</p>
+      <div class="fmodal-contact-grid">
+        <div class="fmodal-contact-card">
+          <div class="icon">💬</div>
+          <strong>Facebook</strong>
+          <a href="https://web.facebook.com/lancelandicho99" target="_blank" rel="noopener">Message us on Facebook</a>
+        </div>
+        <div class="fmodal-contact-card">
+          <div class="icon">📦</div>
+          <strong>Order Support</strong>
+          <a href="/track-order">Track your order</a>
+        </div>
+        <div class="fmodal-contact-card">
+          <div class="icon">🕐</div>
+          <strong>Response Time</strong>
+          <span style="font-size:0.82rem;color:#555">Usually within 24 hours</span>
+        </div>
+        <div class="fmodal-contact-card">
+          <div class="icon">📍</div>
+          <strong>Location</strong>
+          <span style="font-size:0.82rem;color:#555">Manila, Philippines</span>
+        </div>
+      </div>
+    `
+  },
+  privacy: {
+    title: 'Privacy Policy',
+    body: `
+      <p>Archive Manila is committed to protecting your personal information. This policy explains how we collect, use, and safeguard your data.</p>
+
+      <h3>Information We Collect</h3>
+      <ul>
+        <li>Name, phone number, and delivery address (for order fulfillment)</li>
+        <li>Payment proof images (for payment verification only)</li>
+        <li>Order history associated with your phone number</li>
+      </ul>
+
+      <h3>How We Use Your Information</h3>
+      <ul>
+        <li>To process and fulfill your orders</li>
+        <li>To send order status updates</li>
+        <li>To respond to customer service inquiries</li>
+      </ul>
+
+      <h3>Data Sharing</h3>
+      <p>We do not sell or share your personal data with third parties, except with our courier partners for the sole purpose of delivering your order.</p>
+
+      <h3>Data Retention</h3>
+      <p>Order data is retained for record-keeping purposes. You may request deletion of your data by contacting us on Facebook.</p>
+
+      <h3>Security</h3>
+      <p>We take reasonable measures to protect your personal information. However, no method of transmission over the internet is 100% secure.</p>
+
+      <h3>Contact</h3>
+      <p>For privacy-related concerns, message us on <a href="https://web.facebook.com/lancelandicho99" target="_blank">Facebook</a>.</p>
+    `
+  },
+  terms: {
+    title: 'Terms of Service',
+    body: `
+      <p>By using the Archive Manila website and placing orders, you agree to the following terms.</p>
+
+      <h3>Orders & Payment</h3>
+      <p>Orders are confirmed only after payment verification by our team. We reserve the right to cancel orders with invalid or unverifiable payment proofs.</p>
+
+      <h3>Pricing</h3>
+      <p>All prices are in Philippine Pesos (₱) and are inclusive of applicable fees. Prices may change without prior notice.</p>
+
+      <h3>Product Descriptions</h3>
+      <p>We make every effort to accurately describe our products. Minor variations in color or appearance may occur due to photography lighting.</p>
+
+      <h3>Stock Availability</h3>
+      <p>Products are available while stocks last. In the rare event that an ordered item becomes unavailable, we will contact you to arrange a refund or replacement.</p>
+
+      <h3>Intellectual Property</h3>
+      <p>All content on this website, including images and text, is the property of Archive Manila and may not be reproduced without permission.</p>
+
+      <h3>Limitation of Liability</h3>
+      <p>Archive Manila is not liable for delays caused by third-party couriers or circumstances beyond our control.</p>
+
+      <h3>Changes to Terms</h3>
+      <p>We reserve the right to update these terms at any time. Continued use of the site constitutes acceptance of the updated terms.</p>
+    `
+  },
+  cookies: {
+    title: 'Cookie Policy',
+    body: `
+      <h3>What Are Cookies?</h3>
+      <p>Cookies are small text files stored on your browser when you visit a website. They help the site remember your preferences and improve your experience.</p>
+
+      <h3>How We Use Cookies</h3>
+      <ul>
+        <li><strong>Essential cookies:</strong> Keep your shopping cart intact during your session</li>
+        <li><strong>Preference cookies:</strong> Remember your settings and preferences</li>
+        <li><strong>Analytics cookies:</strong> Help us understand how visitors use our site (anonymous data only)</li>
+      </ul>
+
+      <h3>Managing Cookies</h3>
+      <p>You can control or delete cookies through your browser settings. Note that disabling cookies may affect the functionality of the cart and checkout features.</p>
+
+      <h3>Third-Party Cookies</h3>
+      <p>We do not use third-party advertising cookies. Any analytics tools used collect only anonymous, aggregated data.</p>
+
+      <h3>Questions</h3>
+      <p>For any questions about our cookie usage, contact us on <a href="https://web.facebook.com/lancelandicho99" target="_blank">Facebook</a>.</p>
+    `
+  },
+  instagram: {
+    title: 'Instagram',
+    body: `
+      <a class="fmodal-social-link" href="https://instagram.com" target="_blank" rel="noopener">
+        <div class="fmodal-social-icon">📸</div>
+        <div class="fmodal-social-info">
+          <strong>@archivemanila</strong>
+          <span>Follow us for the latest drops, lookbooks, and styling inspo</span>
+        </div>
+      </a>
+      <p style="color:var(--gray);font-size:0.82rem">Our Instagram page is coming soon. Stay tuned for exclusive previews and behind-the-scenes content.</p>
+    `
+  },
+  tiktok: {
+    title: 'TikTok',
+    body: `
+      <a class="fmodal-social-link" href="https://tiktok.com" target="_blank" rel="noopener">
+        <div class="fmodal-social-icon">🎵</div>
+        <div class="fmodal-social-info">
+          <strong>@archivemanila</strong>
+          <span>Watch styling videos, hauls, and new arrivals on TikTok</span>
+        </div>
+      </a>
+      <p style="color:var(--gray);font-size:0.82rem">Our TikTok is coming soon. Follow us to be the first to see new content when we launch.</p>
+    `
+  }
+};
+
+function openFModal(key) {
+  const modal = FMODAL_CONTENT[key];
+  if (!modal) return;
+  document.getElementById('fmodal-title').textContent = modal.title;
+  document.getElementById('fmodal-body').innerHTML = modal.body;
+  document.getElementById('fmodal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFModal() {
+  document.getElementById('fmodal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeFModal();
+});
+</script>
+
+</body>
+</html>

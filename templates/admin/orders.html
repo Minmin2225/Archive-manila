@@ -1,0 +1,52 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Orders{% endblock %}
+{% block page_title %}Orders{% endblock %}
+
+{% block content %}
+<div class="filter-bar">
+  <a href="/admin/orders" class="filter-btn {% if not status_filter %}active{% endif %}">All</a>
+  {% for s in ['Pending Verification', 'Verified', 'Rejected', 'Preparing', 'Shipped', 'Completed'] %}
+  <a href="/admin/orders?status={{ s }}" class="filter-btn {% if status_filter == s %}active{% endif %}">{{ s }}</a>
+  {% endfor %}
+</div>
+
+<div class="table-wrapper">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Order No.</th>
+        <th>Buyer</th>
+        <th>Phone</th>
+        <th>Address</th>
+        <th>Shipping</th>
+        <th>Total</th>
+        <th>Status</th>
+        <th>Date</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for order in orders %}
+      <tr>
+        <td style="font-weight:700;font-family:var(--font-display);font-size:0.92rem">{{ order.order_number }}</td>
+        <td>{{ order.buyer_name }}</td>
+        <td>{{ order.buyer_phone }}</td>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray);font-size:0.8rem">{{ order.buyer_address }}</td>
+        <td style="text-transform:capitalize">{{ order.shipping_option }}</td>
+        <td style="font-weight:700">₱{{ "%.0f"|format(order.total) }}</td>
+        <td>
+          {% set sc = order.status.lower().replace(' ', '-') %}
+          <span class="badge badge-{{ sc }}">{{ order.status }}</span>
+        </td>
+        <td style="color:var(--gray);font-size:0.78rem;white-space:nowrap">{{ order.created_at | fmt_dt }}</td>
+        <td>
+          <a href="/admin/orders/{{ order.id }}" class="btn btn-sm btn-primary">View</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" style="text-align:center;color:var(--gray);padding:2rem">No orders found</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

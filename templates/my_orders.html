@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+{% block title %}My Orders — Archive Manila{% endblock %}
+
+{% block extra_styles %}
+<style>
+.my-orders-wrapper {
+  max-width: 780px; margin: 0 auto;
+  padding: calc(60px + 2.5rem) 2rem 4rem;
+}
+
+.page-header { margin-bottom: 2.5rem; }
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: 2.5rem; font-weight: 900;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  line-height: 1; margin-bottom: 0.4rem;
+}
+.page-header p { color: var(--gray); font-size: 0.88rem; }
+
+/* Lookup form */
+.lookup-card {
+  background: white; border: 1px solid var(--border);
+  padding: 1.75rem; margin-bottom: 2.5rem;
+}
+.lookup-row {
+  display: flex; gap: 0.75rem; align-items: flex-end;
+}
+.lookup-row .form-group { flex: 1; margin: 0; }
+.form-group label {
+  display: block; font-size: 0.72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 0.4rem; color: var(--black);
+}
+.form-group input {
+  width: 100%; padding: 0.75rem 1rem;
+  border: 1px solid var(--border); background: var(--cream);
+  font-family: var(--font-body); font-size: 0.9rem;
+  outline: none; transition: border-color 0.2s;
+}
+.form-group input:focus { border-color: var(--black); }
+.lookup-btn {
+  padding: 0.75rem 1.75rem;
+  background: var(--black); color: white;
+  border: 2px solid var(--black);
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 0.9rem; text-transform: uppercase;
+  letter-spacing: 0.08em; cursor: pointer;
+  transition: background 0.2s; white-space: nowrap;
+}
+.lookup-btn:hover { background: #333; }
+.lookup-error {
+  color: var(--accent); font-size: 0.8rem;
+  margin-top: 0.6rem; display: none;
+}
+.lookup-error.show { display: block; }
+
+/* States */
+.state-loading, .state-empty, .state-prompt {
+  text-align: center; padding: 3.5rem 1rem; color: var(--gray);
+}
+.state-icon { font-size: 3rem; margin-bottom: 0.75rem; }
+.state-title {
+  font-family: var(--font-display); font-size: 1.4rem; font-weight: 800;
+  text-transform: uppercase; color: var(--black); margin-bottom: 0.4rem;
+}
+.state-sub { font-size: 0.85rem; }
+.spinner {
+  width: 36px; height: 36px; margin: 0 auto 1rem;
+  border: 3px solid var(--border); border-top-color: var(--black);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Order card */
+.orders-list { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.order-card { background: white; border: 1px solid var(--border); overflow: hidden; }
+
+.order-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--cream);
+  cursor: pointer; gap: 1rem;
+}
+.order-card-header:hover { background: var(--light-gray); }
+
+.order-num {
+  font-family: var(--font-display); font-size: 1rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.order-meta {
+  font-size: 0.78rem; color: var(--gray);
+  margin-top: 0.15rem;
+}
+.order-header-right {
+  display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0;
+}
+.order-total {
+  font-family: var(--font-display); font-size: 1.1rem; font-weight: 800;
+}
+.collapse-icon {
+  font-size: 0.75rem; color: var(--gray);
+  transition: transform 0.25s;
+}
+.order-card.open .collapse-icon { transform: rotate(180deg); }
+
+/* Status badge */
+.badge {
+  display: inline-block; padding: 0.22rem 0.7rem;
+  font-size: 0.68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.badge-pending-verification { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+.badge-verified            { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+.badge-rejected            { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.badge-preparing           { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.badge-shipped             { background: #cce5ff; color: #004085; border: 1px solid #b8daff; }
+.badge-completed           { background: var(--black); color: white; border: 1px solid var(--black); }
+
+/* Order body (collapsible) */
+.order-body {
+  display: none; padding: 1.25rem;
+}
+.order-card.open .order-body { display: block; }
+
+/* Items */
+.items-section-title {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--gray);
+  margin-bottom: 0.75rem;
+}
+.order-item-row {
+  display: flex; align-items: center; gap: 0.85rem;
+  padding: 0.65rem 0; border-bottom: 1px solid var(--border);
+  font-size: 0.87rem;
+}
+.order-item-row:last-child { border-bottom: none; }
+.item-img {
+  width: 52px; height: 52px; object-fit: cover; flex-shrink: 0;
+  background: var(--light-gray); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+}
+.item-img img { width: 100%; height: 100%; object-fit: cover; }
+.item-name { font-weight: 600; flex: 1; }
+.item-qty { color: var(--gray); font-size: 0.8rem; }
+.item-price { font-weight: 700; white-space: nowrap; }
+
+/* Info rows */
+.order-info-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 1.5rem; margin-top: 1.25rem;
+  padding-top: 1.25rem; border-top: 1px solid var(--border);
+  font-size: 0.83rem;
+}
+.info-pair { display: flex; gap: 0.4rem; }
+.info-pair strong { color: var(--black); min-width: 70px; }
+.info-pair span { color: #555; }
+
+.order-total-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 1rem; padding-top: 0.85rem;
+  border-top: 2px solid var(--black);
+  font-family: var(--font-display); font-size: 1.2rem; font-weight: 800;
+}
+
+/* Status message box */
+.status-msg {
+  display: flex; align-items: flex-start; gap: 0.65rem;
+  padding: 0.9rem 1rem; margin-bottom: 1.25rem;
+  font-size: 0.83rem; line-height: 1.5;
+  border-left: 3px solid;
+}
+.status-msg-pending  { background: #fffbeb; border-color: #fbbf24; color: #92400e; }
+.status-msg-verified { background: #ecfdf5; border-color: #34d399; color: #065f46; }
+.status-msg-preparing{ background: #eff6ff; border-color: #60a5fa; color: #1e40af; }
+.status-msg-shipped  { background: #f0f9ff; border-color: #38bdf8; color: #0c4a6e; }
+.status-msg-completed{ background: #f0fdf4; border-color: #4ade80; color: #14532d; }
+.status-msg-rejected { background: #fff1f2; border-color: #fb7185; color: #881337; }
+.status-msg-icon     { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.05rem; }
+
+/* Results header */
+.results-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 1.25rem;
+}
+.results-count {
+  font-size: 0.8rem; color: var(--gray); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.change-phone {
+  font-size: 0.78rem; color: var(--gray); cursor: pointer;
+  font-weight: 600; text-decoration: underline;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  background: none; border: none; font-family: var(--font-body);
+}
+.change-phone:hover { color: var(--black); }
+
+@media (max-width: 600px) {
+  .lookup-row { flex-direction: column; }
+  .order-info-grid { grid-template-columns: 1fr; }
+  .order-card-header { flex-wrap: wrap; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="my-orders-wrapper">
+  <div class="page-header">
+    <h1>My Orders</h1>
+    <p>Enter your phone number to view all your orders.</p>
+  </div>
+
+  <!-- Lookup Form -->
+  <div class="lookup-card" id="lookup-card">
+    <div class="lookup-row">
+      <div class="form-group">
+        <label>Phone Number</label>
+        <input type="tel" id="lookup-phone" placeholder="e.g. 09171234567"
+               onkeydown="if(event.key==='Enter') lookupOrders()">
+      </div>
+      <button class="lookup-btn" onclick="lookupOrders()">View Orders</button>
+    </div>
+    <div class="lookup-error" id="lookup-error"></div>
+  </div>
+
+  <!-- Content area -->
+  <div id="orders-content">
+    <div class="state-prompt">
+      <div class="state-icon">🛍️</div>
+      <div class="state-title">Your Orders</div>
+      <div class="state-sub">Enter your phone number above to see your order history.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const STATUS_MESSAGES = {
+  'Pending Verification': { cls: 'pending',  icon: '⏳', msg: 'Your payment is being reviewed. We\'ll update you once it\'s verified.' },
+  'Verified':             { cls: 'verified', icon: '✅', msg: 'Payment verified! We\'re getting your order ready.' },
+  'Preparing':            { cls: 'preparing',icon: '📦', msg: 'Your order is being packed and prepared for shipping.' },
+  'Shipped':              { cls: 'shipped',  icon: '🚚', msg: 'Your order is on its way!' },
+  'Completed':            { cls: 'completed',icon: '🎉', msg: 'Order delivered! Thanks for shopping with Archive Manila.' },
+  'Rejected':             { cls: 'rejected', icon: '❌', msg: 'Payment was not verified. Please message us on Facebook for help.' },
+};
+
+async function lookupOrders() {
+  const phone = document.getElementById('lookup-phone').value.trim();
+  const errEl = document.getElementById('lookup-error');
+  errEl.classList.remove('show');
+
+  if (!phone) {
+    errEl.textContent = 'Please enter your phone number.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  showLoading();
+
+  try {
+    const res = await fetch('/api/my-orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showError(data.error || 'Something went wrong.');
+      return;
+    }
+    renderOrders(data.orders, phone);
+  } catch (e) {
+    showError('Network error. Please try again.');
+  }
+}
+
+function showLoading() {
+  document.getElementById('orders-content').innerHTML = `
+    <div class="state-loading">
+      <div class="spinner"></div>
+      <div class="state-sub">Looking up your orders...</div>
+    </div>`;
+}
+
+function showError(msg) {
+  document.getElementById('lookup-error').textContent = msg;
+  document.getElementById('lookup-error').classList.add('show');
+  document.getElementById('orders-content').innerHTML = `
+    <div class="state-empty">
+      <div class="state-icon">😕</div>
+      <div class="state-title">No Orders Found</div>
+      <div class="state-sub">No orders were found for that phone number.</div>
+    </div>`;
+}
+
+function renderOrders(orders, phone) {
+  const content = document.getElementById('orders-content');
+
+  if (!orders.length) {
+    content.innerHTML = `
+      <div class="state-empty">
+        <div class="state-icon">📭</div>
+        <div class="state-title">No Orders Yet</div>
+        <div class="state-sub">You haven't placed any orders with this phone number.</div>
+      </div>`;
+    return;
+  }
+
+  const cards = orders.map((order, idx) => {
+    const sm = STATUS_MESSAGES[order.status] || { cls: 'pending', icon: '📋', msg: '' };
+    const badgeCls = 'badge-' + order.status.toLowerCase().replace(/\s+/g, '-');
+
+    const itemsHtml = order.items.map(item => `
+      <div class="order-item-row">
+        <div class="item-img">
+          ${item.image
+            ? `<img src="${imgSrc(item.image)}" alt="${escHtml(item.product_name)}">`
+            : '👕'}
+        </div>
+        <div style="flex:1">
+          <div class="item-name">${escHtml(item.product_name)}</div>
+          <div class="item-qty">Qty: ${item.quantity}</div>
+        </div>
+        <div class="item-price">₱${Math.round(item.product_price * item.quantity)}</div>
+      </div>`).join('');
+
+    const notesHtml = order.buyer_notes
+      ? `<div class="info-pair"><strong>Notes:</strong><span>${escHtml(order.buyer_notes)}</span></div>` : '';
+
+    return `
+      <div class="order-card" id="card-${idx}">
+        <div class="order-card-header" onclick="toggleCard(${idx})">
+          <div>
+            <div class="order-num">#${order.order_number}</div>
+            <div class="order-meta">${order.created_at || ''}</div>
+          </div>
+          <div class="order-header-right">
+            <span class="badge ${badgeCls}">${order.status}</span>
+            <span class="order-total">₱${Math.round(order.total)}</span>
+            <span class="collapse-icon">▼</span>
+          </div>
+        </div>
+        <div class="order-body">
+          <div class="status-msg status-msg-${sm.cls}">
+            <span class="status-msg-icon">${sm.icon}</span>
+            <span>${sm.msg}${order.status === 'Rejected' ? ' <a href="https://web.facebook.com/lancelandicho99" target="_blank" style="color:inherit;font-weight:700">Message us →</a>' : ''}</span>
+          </div>
+
+          <div class="items-section-title">Items Ordered</div>
+          ${itemsHtml}
+
+          <div class="order-info-grid">
+            <div class="info-pair"><strong>Name:</strong><span>${escHtml(order.buyer_name)}</span></div>
+            <div class="info-pair"><strong>Phone:</strong><span>${escHtml(order.buyer_phone)}</span></div>
+            <div class="info-pair" style="grid-column:1/-1"><strong>Address:</strong><span>${escHtml(order.buyer_address)}</span></div>
+            ${notesHtml}
+          </div>
+
+          <div class="order-total-row">
+            <span>Total</span>
+            <span>₱${Math.round(order.total)}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  content.innerHTML = `
+    <div class="results-header">
+      <span class="results-count">${orders.length} order${orders.length !== 1 ? 's' : ''} found</span>
+      <button class="change-phone" onclick="resetLookup()">Change number</button>
+    </div>
+    <div class="orders-list">${cards}</div>`;
+
+  // Auto-open the first (most recent) order
+  toggleCard(0);
+}
+
+function toggleCard(idx) {
+  const card = document.getElementById('card-' + idx);
+  if (card) card.classList.toggle('open');
+}
+
+function resetLookup() {
+  document.getElementById('lookup-phone').value = '';
+  document.getElementById('orders-content').innerHTML = `
+    <div class="state-prompt">
+      <div class="state-icon">🛍️</div>
+      <div class="state-title">Your Orders</div>
+      <div class="state-sub">Enter your phone number above to see your order history.</div>
+    </div>`;
+  document.getElementById('lookup-phone').focus();
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+// Auto-trigger if phone pre-filled from confirmation page
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('phone')) {
+    document.getElementById('lookup-phone').value = params.get('phone');
+    lookupOrders();
+  }
+});
+</script>
+{% endblock %}
